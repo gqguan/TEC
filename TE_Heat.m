@@ -16,7 +16,8 @@ function [Q, a, R, K] = TE_Heat(Th, Tc, I, N, r)
 %
 syms Qh Qc Tm;
 % initialize
-dTm = 1;
+dTm = 1e5;
+direction_Tm = -1;
 % % set values
 % Th = 320;
 % Tc = 290;
@@ -26,6 +27,7 @@ dTm = 1;
 % 试差法计算Tm
 Tm_val = (Th+Tc)/2; % Tm初值
 while dTm > 1e-5
+    dTm0 = dTm;
     % calculate a1 R1 K1
     [a1, R1, K1] = TE_MaterialProp((Th+Tm_val)/2, 0.0015);
     % calculate a2 R2 K2
@@ -36,7 +38,10 @@ while dTm > 1e-5
     eq(4) = Qc == (I*a2*Tc-I^2*R2/2-K2*(Tm-Tc))*N;
     % get the junction temperature between stages Tm
     dTm = abs(eval(solve(eq(3), Tm))-Tm_val);
-    Tm_val = Tm_val-dTm;
+    if (dTm > dTm0)
+        direction_Tm = -direction_Tm;
+    end
+    Tm_val = Tm_val+direction_Tm*dTm;
 end
 % 吸、放热量
 Q(1) = eval(solve(subs(eq(2), Tm, Tm_val), Qh));
