@@ -1,4 +1,4 @@
-function [Tm_val, a, R, K] = TE_Tm(Th, Tc, I, r)
+function [Tm_val, a, R, K] = TE_Tm(Th, Tc, I, r, gf)
 %% calculate the junction temperature of 2-stage TEC
 %  notes of I/O arguments
 %  Th - (i double scalar) hot-side temperature [K]
@@ -6,6 +6,7 @@ function [Tm_val, a, R, K] = TE_Tm(Th, Tc, I, r)
 %  I  - (i double scalar) serial electric current flowing through the two
 %                         stages [A]
 %  r  - (i double scalar) number ratio of thermocouples in two stages
+%  gf - (i double scalar) geometry factor = A/L [m]
 %  Tm_val - (o double scalar) junction temperature [K]
 %  a  - (o double array(2)) Seebeck coefficient of 1 and 2 stage of TEC
 %  R  - (o double array(2)) electrical resistance of 1 and 2 stage of TEC
@@ -22,9 +23,9 @@ Tm_val = (Th+Tc)/2; % Tm³õÖµ
 while dTm > 1e-5
     dTm0 = dTm;
     % calculate a1 R1 K1
-    [a1, R1, K1] = TE_MaterialProp((Th+Tm_val)/2, 0.0015);
+    [a1, R1, K1] = TE_MaterialProp((Th+Tm_val)/2, gf);
     % calculate a2 R2 K2
-    [a2, R2, K2] = TE_MaterialProp((Tc+Tm_val)/2, 0.0015);
+    [a2, R2, K2] = TE_MaterialProp((Tc+Tm_val)/2, gf);
     % define heat balance equations
     eq = (I*a1*Tm-I^2*R1/2-K1*(Th-Tm))*r == I*a2*Tm-I^2*R2/2-K2*(Tm-Tc);
     % get the junction temperature between stages Tm
