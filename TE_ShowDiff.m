@@ -13,9 +13,17 @@ if wrkvars_exist
         QH(i) = Q(1);
         QC(i) = Q(2);
     end
+    % 计算COP
     COP = QC./(QH-QC);
     COP_sim = ExpData.QC./(ExpData.QH-ExpData.QC);
+    % 输出结果
     plot(QC, COP, 'ro', ExpData.QC, COP_sim, '*');
+    xlabel('QC, [W]'); ylabel('COP'); 
+    legend('Exp', 'Sim', 'Location', 'bestoutside');
+    fprintf('RMSE(rel.QH) = %5.3f\n', ...
+            MVA_diff(ExpData.QH, QH, 'RMSE')/mean(ExpData.QH));
+    fprintf('RMSE(rel.QC) = %5.3f\n', ...
+            MVA_diff(ExpData.QC, QC, 'RMSE')/mean(ExpData.QC));
 else
     fprintf('Abort as the TEC and ExpData are not existed!\n');
 end
