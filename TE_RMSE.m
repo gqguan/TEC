@@ -11,7 +11,9 @@ function [ RMSE ] = TE_RMSE( GF, TEC, ExpData )
 %
 %% function body
 % initialize
+QH  = zeros(size(ExpData.QH));
 QC  = zeros(size(ExpData.QC));
+COP = zeros(size(ExpData.QC));
 %
 TEC.GeomFactor = GF;
 % calculate the number of thermocouples in the first stage of 2-stage TEC
@@ -32,8 +34,14 @@ for i = 1: NumExpData
     end
     [Q, ~, ~, ~] = TE_Heat(ExpData.TH(i), ExpData.TC(i), ExpData.I(i), ...
                            N0, TEC.NumRatio, TEC.GeomFactor);
-    QC(i) = Q(2)/N0/(TEC.NumRatio+1);
+    QH(i) = Q(1);
+    QC(i) = Q(2);
+    COP(i) = QC(i)./(QH(i)-QC(i));
 end
-RMSE = MVA_diff(ExpData.QC/N0/(TEC.NumRatio+1), QC, 'RMSE');
+% COP_exp = ExpData.QC./(ExpData.QH-ExpData.QC);
+% RMSE = MVA_diff(COP_exp, COP, 'RMSE')/mean(COP_exp) ...
+%       +MVA_diff(ExpData.QC, QC, 'RMSE')/mean(ExpData.QC);
+RMSE = MVA_diff(ExpData.QH, QH, 'RMSE');
+%
 end
 

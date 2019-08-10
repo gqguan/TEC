@@ -11,13 +11,17 @@ ExpData.TH = ExpData.TH+273.15;
 ExpData.TC = ExpData.TC+273.15;
 % initialize TEC parameters
 TEC = struct('NumTC', 190, 'NumRatio', 1, 'GeomFactor', 3.8e-4);
-% calculate the number of thermocouples in the first stage of 2-stage TEC
-N0 = TEC.NumTC/(TEC.NumRatio+1);
+% 计时
 toc
 % calculate the RMSE of QC
-fprintf('Calculating RMSE of QC ... \n');
+fprintf('Calculating RMSE of dQH(exp-sim) ... \n');
 % 求使计算QC最接近实验结果的热电偶几何因素GF
 [GF, RMSE, exitflag] = fminsearch(@(GF)TE_RMSE(GF, TEC, ExpData), 3.8e-4);
+TEC.GeomFactor = GF;
+% 计时
 toc
+% 清理变量
+clear N0;
 % 输出
 fprintf('RMSE of Qc = %5.3f\n', RMSE);
+TE_ShowDiff;
