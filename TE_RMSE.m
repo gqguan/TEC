@@ -44,10 +44,7 @@ for i = 1: NumExpData
     COP(i) = QC(i)./(QH(i)-QC(i));
 end
 COP_exp = ExpData.QC./(ExpData.QH-ExpData.QC);
-% 在COP vs. QC平面，实验点与计算点间距的模
-pts_exp = [COP_exp, ExpData.QC];
-pts_sim = [COP, QC];
-RMSE = norm(pts_exp-pts_sim);
+RMSE = norm(COP_exp-COP);
 %
 end
 

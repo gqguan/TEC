@@ -16,8 +16,9 @@ if wrkvars_exist
     COP = QC./(QH-QC);
     COP_exp = ExpData.QC./(ExpData.QH-ExpData.QC);
     % Êä³ö½á¹û
-    plot(ExpData.QC, COP_exp, 'ro', QC, COP, 'b*');
-    xlabel('QC, [W]'); ylabel('COP'); 
+    plot((ExpData.TH-ExpData.TC), COP_exp, 'ro', ...
+         (ExpData.TH-ExpData.TC), COP, 'b*');
+    xlabel('TH-TC, [K]'); ylabel('COP'); 
     legend('Exp', 'Sim', 'Location', 'bestoutside');
     fprintf('RMSE.QH(exp-sim)/exp = %5.3f\n', ...
             norm((ExpData.QH-QH)./ExpData.QH));
