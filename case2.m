@@ -6,11 +6,11 @@ clear;
 % set the waitbar
 ui_waitbar = waitbar(0, 'Setting ... ');
 % set parameters
-I_Set = 1.25;
+I_Set = 3.12;
 Th = 50.6+273.15; 
 Tc = 16.5+273.15;
 % initialize TEC parameters
-TEC = struct('NumTC', 190, 'NumRatio', 1, 'GeomFactor', 3.8e-4);
+TEC = struct('NumTC', 190, 'NumRatio', 1, 'GeomFactor', 8e-4);
 % 计算电流上下边界
 IBound = TE_Current(Th, Tc, TEC, 1);
 IMax = max(IBound);
@@ -20,6 +20,7 @@ dI = (IMax-IMin)/100;
 if (I_Set>IMax || I_Set<IMin)
     fprintf('Given electrical current %5.3f A is out of range ', I_Set)
     fprintf('(%5.3f %5.3f)!\n', IMin, IMax);
+    delete(ui_waitbar);
     return;
 end
 % initialize
