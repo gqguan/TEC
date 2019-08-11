@@ -1,62 +1,61 @@
-function [I_calc] = TE_Current(Th, Tc, N, r, gf, opt)
+function [Ival, Tval] = TE_Current(Th, Tc, TEC, opt)
 %% Calculate current according hot- and cold-side temperatures
-%  notes of I/O arguments
-%  Th - (i double scalar) hot-side temperature [K]
-%  Tc - (i double scalar) cold-side temperature [K]
-%  N  - (i double scalar) number of thermocouples in the first stage
-%  r  - (i double scalar) number ratio of thermocouples in two stages
-%  gf - (i double scalar) geometry factor = A/L [m]
-%  opt- (i optional integer scalar) running mode
-%       0: (default) currents of one-stage TEC to make Qc = 0
-%       1:           currents of two-stage TEC to make Qc = 0
-%  I_calc - (o double array(2) for opt = 0) currents in one-stage TEC [A]
-%           (o double array(2) for opt = 1) currents in two-stage TEC [A]
-%  Q  - (o double array(2)) heats flowing out/in the hot/cold side of TEC
+%%  notes of I/O arguments
+%  Th  - (i double scalar) hot-side temperature [K]
+%  Tc  - (i double scalar) cold-side temperature [K]
+%  TEC - (i struc) struc variable
+%        NumTC     : Number of thermocouples in TEC
+%        NumRatio  : ratio of thermocouples in the 1-stage TEC to those in
+%                     the 2-stage TEC
+%        GeomFactor: geometry factor of thermcouples in TEC [m]
+%        SeebeckCoefficient: Seebeck coefficient of 1 and 2 stage of TEC
+%        ElecConductance   : electrical conductance of 1 and 2 stage of TEC
+%        ThermConductance  : thermal conductance of 1 and 2 stage of TEC
+%  opt - (i optional integer scalar) running mode
+%        0: (default) currents of one-stage TEC to make Qc = 0
+%        1:           currents of two-stage TEC to make Qc = 0
+%  Ival- (o double array(2) for opt = 0) currents in one-stage TEC [A]
+%        (o double array for opt = 1) currents in two-stage TEC [A]
+%  Tval- (o double scalar for opt = 0) junction temperature [K]
+%        (o double scalar for opt = 1) junction temperature [K]
+%
+%  ## References
+%   * Xuan et al. Cryogenics 42 (2002) 273-278
 %
 %  by Dr. Guan Guoqiang @ SCUT on 2019-08-06
+%
+%  2019-08-10: update according to the new TE_Tm()
 %
 %% function body
 % default argument of input opt
 if nargin < 4
     opt = 0;
-    r = 0;
-    gf = 0.04*0.04/0.006;
 end
-syms I;
+% use temperature-independant properties at T = (Th+Tc)/2
+[a, R, K] = TE_MaterialProp((Th+Tc)/2, TEC.GeomFactor);
+% calculate the thermocouple number in the first stage of 2-stage TEC
+N0 = TEC.NumTC/(TEC.NumRatio+1);
+%
 switch opt
     case 0
-        [a, R, K] = TE_MaterialProp((Th+Tc)/2, gf);
+        syms I;
         eq12 = 0 == I*a*Tc-I^2*R/2-K*(Th-Tc);
-        current = eval(solve(eq12, I));
-        I_calc = current;
+        Ival = eval(solve(eq12, I));
+        Tval = 0;
     case 1
-        I_calc = [0 0];
-        for j = 1:2
-            % intialize
-            Tm = (Th+Tc)/2.d0;
-            dTm = 1e5;
-            while dTm > 1e-5
-                % 计算热电偶参数
-                % calculate a2 R2 K2
-                [a2, R2, K2] = TE_MaterialProp((Tc+Tm)/2, gf);
-                % define heat balance equations
-                eq4 = 0 == (I*a2*Tc-I^2*R2/2-K2*(Tm-Tc))*N;
-                % 计算电流
-                current = eval(solve(eq4, I));
-                dTm_vec = zeros(size(current));
-                % 计算Tm
-                for i = 1:length(current)
-                    dTm_vec(i) = TE_Tm(Th, Tc, current(i), r, gf)-Tm;       
-                end
-                dTm = dTm_vec(j);
-                Tm = Tm+dTm;
-            end
-            % 输出电流向量
-            I_calc(j) = current(j);
-        end
+        syms I Tm;
+        a1 = a; a2 = a; R1 = R; R2 = R; K1 = K; K2 = K;
+        r = TEC.NumRatio;
+        Qc = 0;
+        eq3 = (I*a1*Tm-I^2*R1/2-K1*(Th-Tm))*r == ...
+              I*a2*Tm+I^2*R2/2-K2*(Tm-Tc);
+        eq4 = Qc == (I*a2*Tc-I^2*R2/2-K2*(Tm-Tc))*N0;
+        sol = solve([eq3,eq4], [I,Tm]);
+        Ival = TE_Complex2Real(vpa(sol.I), 1e-6);
+        Tval = TE_Complex2Real(vpa(sol.Tm), 1e-6);
+        Tval = Tval(Tval>Tc & Tval<Th);
     otherwise
         fprintf('[ERROR] Invalid input argument!\n');
-        return
 end
 %
 end
