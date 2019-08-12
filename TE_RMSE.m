@@ -1,7 +1,7 @@
 function [ RMSE ] = TE_RMSE( x, TEC, ExpData )
 %% calculate the RMSE between predicted and experimental results
 %  notes of I/O arguments
-%  x       - (i double array) [NumRatio GeomFactor] of thermocouples
+%  x       - (i double array) [HTCoefficient GeomFactor] of thermocouples
 %  TEC     - (i struction) initial parameters of thermocouples,
 %                          ref. to "TE_ImportExpData.m"
 %  ExpData - (i table) experimental results, ref. to "TE_ImportExpData.m"
@@ -19,8 +19,8 @@ switch length(x)
     case 1 % x = GeomFactor
         TEC.GeomFactor = x;
     case 2 % x = [NumRatio GeomFactor]
-        TEC.NumRatio   = x(1);
-        TEC.GeomFactor = x(2);
+        TEC.HTCoefficient = x(1);
+        TEC.GeomFactor    = x(2);
 end
 % calculate the number of thermocouples in the first stage of 2-stage TEC
 N0 = TEC.NumTC/(TEC.NumRatio+1); 
@@ -28,8 +28,11 @@ N0 = TEC.NumTC/(TEC.NumRatio+1);
 % 计算理论吸、放热量
 NumExpData = height(ExpData);
 for i = 1: NumExpData
+    % calculate the hot and cold junction temperatures
+    T = TE_JunctionT(ExpData.TH(i), ExpData.TC(i), ExpData.I(i), TEC);
+    Th = T(1); Tc = T(2);
     % 计算电流上下边界
-    IBound = TE_Current(ExpData.TH(i), ExpData.TC(i), TEC, 1);
+    IBound = TE_Current(Th, Tc, TEC, 1);
     IMax = max(IBound);
     IMin = min(IBound);
     % 判定实验测得电流是否在理论范围
@@ -38,7 +41,7 @@ for i = 1: NumExpData
                 ExpData.I(i), IMin, IMax);
         return;
     end
-    [Q, ~] = TE_Heat(ExpData.TH(i), ExpData.TC(i), ExpData.I(i), TEC);
+    [Q, ~] = TE_Heat(Th, Tc, ExpData.I(i), TEC);
     QH(i) = Q(1);
     QC(i) = Q(2);
     COP(i) = QC(i)./(QH(i)-QC(i));

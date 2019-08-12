@@ -6,13 +6,6 @@ clear;
 % set the waitbar
 ui_waitbar = waitbar(0, 'Setting ... ');
 % set parameters
-<<<<<<< HEAD:case2.m
-I_Set = 3.12;
-Th = 50.6+273.15; 
-Tc = 16.5+273.15;
-% initialize TEC parameters
-TEC = struct('NumTC', 190, 'NumRatio', 1, 'GeomFactor', 8e-4);
-=======
 I_Set = 1;
 Th = 50.6+273.15; 
 Tc = 16.5+273.15;
@@ -22,7 +15,6 @@ TEC = struct('NumTC', 190, 'NumRatio', 0, 'GeomFactor', 3.8e-4, ...
 % calculate the hot and cold junction temperatures
 T = TE_JunctionT(Th, Tc, I_Set, TEC);
 Th = T(1); Tc = T(2);
->>>>>>> master:case3.m
 % 计算电流上下边界
 IBound = TE_Current(Th, Tc, TEC, 1);
 IMax = max(IBound);
