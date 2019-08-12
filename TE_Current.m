@@ -1,6 +1,6 @@
 function [Ival, Tval] = TE_Current(Th, Tc, TEC, opt)
 %% Calculate current according hot- and cold-side temperatures
-%%  notes of I/O arguments
+%  notes of I/O arguments
 %  Th  - (i double scalar) hot-side temperature [K]
 %  Tc  - (i double scalar) cold-side temperature [K]
 %  TEC - (i struc) struc variable
@@ -28,7 +28,7 @@ function [Ival, Tval] = TE_Current(Th, Tc, TEC, opt)
 %
 %% function body
 % default argument of input opt
-if nargin < 4
+if nargin < 4 || TEC.NumRatio == 0
     opt = 0;
 end
 % use temperature-independant properties at T = (Th+Tc)/2
