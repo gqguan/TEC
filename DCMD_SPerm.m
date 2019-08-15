@@ -37,15 +37,17 @@ function [QP,STransMembr] = DCMD_SPerm(DirectOpt, MembrProps, SFeedSide, SPermSi
 %
 %%
 % intialize
-C   = MembrProps.MDCoefficient;
-d   = MembrProps.Thickness;
-K   = MembrProps.ThermConductivity;
-TH  = SFeedSide.Temp;
-MF  = SFeedSide.MassFraction;
-TC  = SPermSide.Temp;
+MF = SFeedSide.MassFraction;
+C  = MembrProps.MDCoefficient;
+K  = MembrProps.ThermConductivity;
+d  = MembrProps.Thickness;
 % calculate the temperature at the membrane surface 
-TMH = TH; % *Under construction*
-TMC = TC; % *Under construction*
+fun = @(TM)DCMD_Diff_TM(TM, SFeedSide, SPermSide, MembrProps);
+TM0 = [SFeedSide.Temp SPermSide.Temp];
+lb  = [TM0(2) TM0(2)];
+ub  = [TM0(1) TM0(1)];
+[TM,fval,exitflag] = fmincon(fun, TM0, [], [], [], [], lb, ub);
+TMH = TM(1); TMC = TM(2);
 % get permeation flux according to the difference of vapor pressure
 PSH = DCMD_SatVapPressure(TMH, MF);
 PSC = DCMD_SatVapPressure(TMC);
