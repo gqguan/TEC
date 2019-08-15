@@ -28,9 +28,9 @@ function [fval] = DCMD_Diff_THTC(x, QH, QC, SInFeed, SInPerm, MembrProps)
 %            .Thickness: thickness of membrane [m]
 %            .MDCoefficient: MD coefficient [kg/s-m2-Pa]
 %            .ThermConductivity: thermal conductivity of membrane
-%  fval - (o real scalar) 
+%  fval - (o real scalar) differences of [TH TC]
 %
-%  by Dr. Guan Guoqiang @ SCUT on 2019-08-10
+%  by Dr. Guan Guoqiang @ SCUT on 2019-08-15
 %  
 % initialize
 SFeedSide.Temp = x(1);
