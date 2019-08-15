@@ -1,5 +1,5 @@
 function [fval] = DCMD_Diff_THTC(x, QH, QC, SInFeed, SInPerm, MembrProps)
-%% calculate the material and energy conservation
+%% calculate temperature differences of TH and TC
 %  notes of I/O arguments
 %  x    - (i real arrays(2)) x(1) = TH, mean temperature of feed-side
 %                                       channel in DCMD module [K]
