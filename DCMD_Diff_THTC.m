@@ -33,10 +33,12 @@ function [fval] = DCMD_Diff_THTC(x, QH, QC, SInFeed, SInPerm, MembrProps)
 %  by Dr. Guan Guoqiang @ SCUT on 2019-08-15
 %  
 % initialize
-SFeedSide.Temp = x(1);
-SPermSide.Temp = x(2);
 SFeedSide.MassFraction = SInFeed.MassFraction;
 SPermSide.MassFraction = SInPerm.MassFraction;
+SFeedSide = SInFeed; % UNDER CONSTRUCTION
+SPermSide = SInPerm; % UNDER CONSTRUCTION
+SFeedSide.Temp = x(1);
+SPermSide.Temp = x(2);
 % feed-side heat and mass balance
 DirectOpt = -1;
 [QTransMembr,STransMembr] = DCMD_SPerm(DirectOpt, MembrProps, ...
