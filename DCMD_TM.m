@@ -24,16 +24,13 @@ rho = Stream.Density;
 mu  = Stream.Viscosity;
 cp  = Stream.SpecHeat;
 Dh  = 4*40*6/(2*(40+6))*1e-3; % hydraulic diameter [m]
-syms h; % overall heat transfer coefficient [W/m2-K]
-syms Nu Re Pr Gz; % dimensionless numbers
-% solve h
-% eq = Nu == 0.16*Re^0.67*Pr^0.33; % Guan2012IECR eq.(6)
-% eq = Nu == 1.3*Re^0.645*Pr^0.38; % Ibrahim2013AIChE tab.1 ref.[29]
-eq = Nu == 3.66+0.19*Gz^0.8/(1+0.117*Gz^0.467); % Guan2012IECR eq.(6)
-% eq = Nu == 0.74*Re^0.2*(Gz*Pr)^0.1*Pr^0.2; % Tomaszewska2000JMS eq.(13)
-eq = subs(eq, Gz, Dh/0.006*Re*Pr);
-eq = subs(eq, [Nu,Re,Pr], [h*L/k,L*u*rho/mu,cp*mu/k]);
-h = double(solve(eq, h));
+% 
+% eq = Nu == 3.66+0.19*Gz^0.8/(1+0.117*Gz^0.467); % Guan2012IECR eq.(6)
+Re = L*u*rho/mu;
+Pr = cp*mu/k;
+Gz = Dh/0.006*Re*Pr;
+% calculate total heat transfer coefficient
+h = k/L*(3.66+0.19*Gz^0.8/(1+0.117*Gz^0.467));
 % output
 TM = T-JH/h;
 %
