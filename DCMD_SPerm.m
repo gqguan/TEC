@@ -44,10 +44,13 @@ d  = MembrProps.Thickness;
 % calculate the temperature at the membrane surface 
 fun = @(TM)DCMD_Diff_TM(TM, SFeedSide, SPermSide, MembrProps);
 TM0 = [SFeedSide.Temp-1 SPermSide.Temp+1];
-lb  = [SPermSide.Temp SPermSide.Temp];
-ub  = [SFeedSide.Temp SFeedSide.Temp];
-opts = optimoptions(@fmincon,'Display','iter');
-[TM,fval,exitflag] = fmincon(fun, TM0, [], [], [], [], lb, ub, [], opts);
+% % use fmincon() to get the TMs
+% lb  = [SPermSide.Temp SPermSide.Temp];
+% ub  = [SFeedSide.Temp SFeedSide.Temp];
+% opts = optimoptions(@fmincon,'Display','off');
+% [TM,fval,exitflag] = fmincon(fun, TM0, [], [], [], [], lb, ub, [], opts);
+% use fminsearch() to get the TMs
+[TM,fval,exitflag] = fminsearch(fun, TM0);
 TMH = TM(1); TMC = TM(2);
 % get permeation flux according to the difference of vapor pressure
 PSH = DCMD_SatVapPressure(TMH, MF);
