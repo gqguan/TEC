@@ -37,12 +37,33 @@ SInPerm = struct('Temp', 303.15,     ...
 MembrProps = struct('TMH', [], 'TMC', [], 'Area', 0.0016, ...
                     'Thickness', 1.5e-4, 'MDCoefficient', 3.2e-7, ...
                     'ThermConductivity', (0.18*0.3+0.025*0.7));
-QH = 0;
-QC = 0;
-% optimize feed- and permeate-side temperatures to minimize
-% DCMD_Diff_THTC()
-x0 = [SInFeed.Temp SInPerm.Temp];
-fun = @(x)DCMD_Diff_THTC(x, QH, QC, SInFeed, SInPerm, MembrProps);
-ub = [x0(1) x0(1)];
-lb = [x0(2) x0(2)];
-[x,fval,exitflag] = fmincon(fun, x0, [], [], [], [], lb, ub);
+%  TEC.NumTC     : Number of thermocouples in TEC
+%     .NumRatio  : ratio of thermocouples in the 1-stage TEC to those in
+%                  the 2-stage TEC
+%     .GeomFactor: geometry factor of thermcouples in TEC [m]
+%     .HTCoefficient     : Overall heat transfer coefficient [W/m2-K]
+%     .HTArea            : heat transfer area [m2]
+%     .SeebeckCoefficient: Seebeck coefficient of 1 and 2 stage of TEC
+%     .ElecConductance   : electrical conductance of 1 and 2 stage of TEC
+%     .ThermConductance  : thermal conductance of 1 and 2 stage of TEC
+TEC = struct('NumTC', 190, 'NumRatio', 0, 'GeomFactor', 3.8e-4, ...
+             'HTCoefficient', 270, 'HTArea', 0.0016, ...
+             'SeebeckCoefficient', [], 'ElecConductance', [], ...
+             'ThermConductance', []);
+% % optimize feed- and permeate-side temperatures to minimize
+% % DCMD_Diff_THTC()
+% x0 = [SInFeed.Temp SInPerm.Temp];
+% fun = @(x)DCMD_Diff_THTC(x, QH, QC, SInFeed, SInPerm, MembrProps);
+% % ub = [x0(1) x0(1)];
+% % lb = [x0(2) x0(2)];
+% % [x,fval,exitflag] = fmincon(fun, x0, [], [], [], [], lb, ub);
+% [x,fval,exitflag] = fminsearch(fun, x0);
+% solve temperatures at the hot surface of TEC1 and the cold surface of
+% TEC2
+I1  = 3.0; I2 = 3.0; TEC1 = TEC; TEC2 = TEC;
+y   = [283.15 283.15];
+fun = @(x)DCMD_Diff_TS(x, y, I1, TEC1, I2, TEC2, SInFeed, SInPerm, ...
+                       MembrProps);
+x0  = [SInFeed.Temp-1, SInPerm.Temp+1];
+options = optimset('Display', 'off');
+[xsol,fval,existflag] = fminsearch(fun, x0, options);
