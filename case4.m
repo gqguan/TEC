@@ -1,5 +1,9 @@
 %% calculate the 0-dimension DCMD with TEHPs
 % initialize
+global profile;
+profile = struct('WP', [], 'Q1H', [], 'Q1C', [], 'Q2H', [], 'Q2C', [], ...
+                 'QM', [], 'TS1H', [], 'TH', [], 'TMH', [], 'TMC', [], ...
+                 'TC', [], 'TS2C', []);
 %  SInFeed - properties of feed-side influent
 %           .Temp: temperature [K]
 %           .MassFlow: mass flowrate [kg/s]
