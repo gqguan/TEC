@@ -39,6 +39,8 @@ SFeedSide = SInFeed; % UNDER CONSTRUCTION
 SPermSide = SInPerm; % UNDER CONSTRUCTION
 SFeedSide.Temp = x(1);
 SPermSide.Temp = x(2);
+SFeedSide = DCMD_PackStream(SFeedSide);
+SPermSide = DCMD_PackStream(SPermSide);
 % feed-side heat and mass balance
 DirectOpt = -1;
 [QTransMembr,STransMembr] = DCMD_SPerm(DirectOpt, MembrProps, ...

@@ -65,9 +65,9 @@ T1H = T(1); T1C = T(2);
 SFeedSide = SInFeed; % UNDER CONSTRUCTION
 SPermSide = SInPerm; % UNDER CONSTRUCTION
 SFeedSide.Temp = T1H;
-SFeedSide.Enthalpy = SFeedSide.MassFlow*SFeedSide.SpecHeat*T1H;
+SFeedSide = DCMD_PackStream(SFeedSide);
 SPermSide.Temp = T1C;
-SFeedSide.Enthalpy = SFeedSide.MassFlow*SFeedSide.SpecHeat*T1C;
+SPermSide = DCMD_PackStream(SPermSide);
 xnew(1) = DCMD_TM(SFeedSide, -Q1H);
 xnew(2) = DCMD_TM(SPermSide, Q2C);
 fval = norm(x-xnew);
