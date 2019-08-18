@@ -71,8 +71,8 @@ SFeedSide.Temp = T1H;
 SFeedSide = DCMD_PackStream(SFeedSide);
 SPermSide.Temp = T1C;
 SPermSide = DCMD_PackStream(SPermSide);
-xnew(1) = DCMD_TM(SFeedSide, -Q1H);
-xnew(2) = DCMD_TM(SPermSide, Q2C);
+xnew(1) = DCMD_TM(SFeedSide, -Q1H/MembrProps.Area);
+xnew(2) = DCMD_TM(SPermSide,  Q2C/MembrProps.Area);
 profile.TS1H = xnew(1); profile.TS2C = xnew(2);
 fval = norm(x-xnew);
 %
