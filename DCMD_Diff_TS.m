@@ -47,15 +47,12 @@ function [fval] = DCMD_Diff_TS(x, y, I1, TEC1, I2, TEC2, SInFeed, SInPerm, Membr
 %  by Dr. Guan Guoqiang @ SCUT on 2019-08-15
 %  
 % initialize
-global profile;
 TS1H = x(1); TS2C = x(2);
 TS1C = y(1); TS2H = y(1);
 % calculate the Q1H and Q2C
 Q1 = TE_Heat(TS1H, TS1C, I1, TEC1);
-profile.Q1H = Q1(1); profile.Q1C = Q1(2);
 Q1H = Q1(1);
 Q2 = TE_Heat(TS2H, TS2C, I2, TEC2);
-profile.Q2H = Q2(1); profile.Q2C = Q2(2);
 Q2C = Q2(2);
 % calculate the T1H and T1C by optimizing feed- and permeate-side 
 % temperatures to minimize DCMD_Diff_THTC()
@@ -73,7 +70,6 @@ SPermSide.Temp = T1C;
 SPermSide = DCMD_PackStream(SPermSide);
 xnew(1) = DCMD_TM(SFeedSide, -Q1H/MembrProps.Area);
 xnew(2) = DCMD_TM(SPermSide,  Q2C/MembrProps.Area);
-profile.TS1H = xnew(1); profile.TS2C = xnew(2);
 fval = norm(x-xnew);
 %
 end

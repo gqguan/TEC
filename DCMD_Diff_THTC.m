@@ -33,7 +33,6 @@ function [fval] = DCMD_Diff_THTC(x, QH, QC, SInFeed, SInPerm, MembrProps)
 %  by Dr. Guan Guoqiang @ SCUT on 2019-08-15
 %  
 % initialize
-global profile;
 SFeedSide.MassFraction = SInFeed.MassFraction;
 SPermSide.MassFraction = SInPerm.MassFraction;
 SFeedSide = SInFeed; % UNDER CONSTRUCTION
@@ -46,17 +45,11 @@ SPermSide = DCMD_PackStream(SPermSide);
 DirectOpt = -1;
 [QTransMembr,STransMembr] = DCMD_SPerm(DirectOpt, MembrProps, ...
                                        SFeedSide, SPermSide);
-profile.WP = STransMembr.MassFlow;
-profile.QM = QTransMembr;
-profile.TH = SFeedSide.Temp;
-profile.TMH = STransMembr.Temp;
 SOutFeed = DCMD_SOut(DirectOpt, SInFeed, STransMembr, QH, QTransMembr);
 % permeate-side heat and mass balance
 DirectOpt = 1;
 [QTransMembr,STransMembr] = DCMD_SPerm(DirectOpt, MembrProps, ...
                                        SFeedSide, SPermSide);
-profile.TC = SPermSide.Temp;
-profile.TMC = STransMembr.Temp;
 SOutPerm = DCMD_SOut(DirectOpt, SInPerm, STransMembr, QTransMembr, QC);
 % output
 xout = [SOutFeed.Temp,SOutPerm.Temp];
