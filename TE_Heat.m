@@ -1,4 +1,3 @@
-function [Q, TEC] = TE_Heat(Th, Tc, I, TEC)
 %% calculate the heats of TEC
 %  notes of I/O arguments
 %  Th  - (i double scalar) hot-side temperature [K]
@@ -20,8 +19,10 @@ function [Q, TEC] = TE_Heat(Th, Tc, I, TEC)
 %  2019-08-07: add case 0 for calculating the heats in one-stage TEC
 %  2019-08-10: update according to the new TE_Tm()
 %
-%% function body
+function [Q, TEC] = TE_Heat(Th, Tc, I, TEC)
+%% Calculate the number ratio of thermocouples
 N0 = TEC.NumTC/(TEC.NumRatio+1);
+%% Calculate the absorbed and released heats
 switch TEC.NumRatio
     case 0
         [a, R, K] = TE_MaterialProp((Th+Tc)/2, TEC.GeomFactor);
