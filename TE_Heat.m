@@ -5,23 +5,27 @@
 %  I   - (i double scalar) serial electric current flowing through the two
 %                         stages [A]
 %  TEC - (i struc) struc variable
-%        NumTC     : Number of thermocouples in TEC
-%        NumRatio  : ratio of thermocouples in the 1-stage TEC to those in
+%     .NumTC     : Number of thermocouples in TEC
+%     .NumRatio  : ratio of thermocouples in the 1-stage TEC to those in
 %                    the 2-stage TEC
-%        GeomFactor: geometry factor of thermcouples in TEC [m]
-%        SeebeckCoefficient: Seebeck coefficient of 1 and 2 stage of TEC
-%        ElecConductance   : electrical conductance of 1 and 2 stage of TEC
-%        ThermConductance  : thermal conductance of 1 and 2 stage of TEC
+%     .GeomFactor: geometry factor of thermcouples in TEC [m]
+%     .SeebeckCoefficient: Seebeck coefficient of 1 and 2 stage of TEC
+%     .ElecConductance   : electrical conductance of 1 and 2 stage of TEC
+%     .ThermConductance  : thermal conductance of 1 and 2 stage of TEC
+%     .Voltage: input electrical voltage [V]
+%     .Current: input electrical current [A]
 %  Q   - (o double array(2)) heats flowing out/in the hot/cold side of TEC
 %
 %  by Dr. Guan Guoqiang @ SCUT on 2019-08-06
 %
 %  2019-08-07: add case 0 for calculating the heats in one-stage TEC
 %  2019-08-10: update according to the new TE_Tm()
+%  2019-08-19: change struct(TEC) to include the U and I
 %
-function [Q, TEC] = TE_Heat(Th, Tc, I, TEC)
-%% Calculate the number ratio of thermocouples
+function [Q, TEC] = TE_Heat(Th, Tc, TEC)
+%% Calculate parameters of thermocouples
 N0 = TEC.NumTC/(TEC.NumRatio+1);
+I = TEC.Current;
 %% Calculate the absorbed and released heats
 switch TEC.NumRatio
     case 0

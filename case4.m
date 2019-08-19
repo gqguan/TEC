@@ -1,6 +1,6 @@
-%% Calculate temperatures of 0-dimension DCMD module with TEHPs
+%% Calculate temperatures of stacked DCMD module with TEHPs
 %
-% by Dr. GUAN, Guoqiang @ SCUT on 2019-08-17
+% by Dr. GUAN, Guoqiang @ SCUT on 2019-08-19
 %
 %% Initialize
 clear;
@@ -57,21 +57,21 @@ MembrProps = struct('TMH', [], 'TMC', [], 'Area', 0.0016, ...
 TEC = struct('NumTC', 190, 'NumRatio', 0, 'GeomFactor', 3.8e-4, ...
              'HTCoefficient', 270, 'HTArea', 0.0016, ...
              'SeebeckCoefficient', [], 'ElecConductance', [], ...
-             'ThermConductance', []);
+             'ThermConductance', [], 'Voltage', 12, 'Current', 0.8);
 %% Solve TS1H and TS2C
 % Temperatures at the hot surface of TEC1 and the cold surface of TEC2
 I1  = 3.0; I2 = 3.0; TEC1 = TEC; TEC2 = TEC;
 y   = [293.15 346]; % [TS1C,TS2H]
-fun_TS = @(x)DCMD_Diff_TS(x, y, I1, TEC1, I2, TEC2, SInFeed, SInPerm, ...
+fun_TS = @(x)DCMD_Diff_TS(x, y, TEC1, TEC2, SInFeed, SInPerm, ...
                        MembrProps);
 TS0  = [SInFeed.Temp-1, SInPerm.Temp+1]; % initial values of [TS1H,TS2C]
 options = optimset('Display', 'off');
 TS = fminsearch(fun_TS, TS0, options); % x=[TS1H,TS2C]
 profile.TS1H = TS(1); profile.TS2C = TS(2);
 %% Calculate heats of TEC1 and TEC2
-QS1 = TE_Heat(TS(1), y(1), I1, TEC1);
+QS1 = TE_Heat(TS(1), y(1), TEC1);
 profile.Q1H = QS1(1); profile.Q1C = QS1(2);
-QS2 = TE_Heat(y(2), TS(2), I2, TEC2);
+QS2 = TE_Heat(y(2), TS(2), TEC2);
 profile.Q2H = QS2(1); profile.Q2C = QS2(2);
 %% Calculate temperatures of feed- and permeate-side bulk flows
 fun_T = @(T)DCMD_Diff_THTC(T, QS1(1), QS2(2), SInFeed, SInPerm, MembrProps);

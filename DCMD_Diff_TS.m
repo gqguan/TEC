@@ -1,11 +1,10 @@
-function [fval] = DCMD_Diff_TS(x, y, I1, TEC1, I2, TEC2, SInFeed, SInPerm, MembrProps)
+function [fval] = DCMD_Diff_TS(x, y, TEC1, TEC2, SInFeed, SInPerm, MembrProps)
 %% calculate the temperature differences of TS
 %  notes of I/O arguments
 %  x - (i real arrays(2)) x(1)=TS1H, T at hot surface of TEC1 [K]
 %                         x(2)=TS2C, T at cold surface of TEC2 [K]
 %  y - (i real arrays(2)) y(1)=TS1C, T at cold surface of TEC1 [K]
 %                         y(2)=TS2H, T at hot surface of TEC2 [K]
-%  I1   - (i real scalar) electrical current of TEC1 [A]
 %  TEC1 - (i struc) properties of TEC1
 %      .NumTC     : Number of thermocouples in TEC1
 %      .NumRatio  : ratio of thermocouples in the 1-stage TEC1 to those in
@@ -14,7 +13,8 @@ function [fval] = DCMD_Diff_TS(x, y, I1, TEC1, I2, TEC2, SInFeed, SInPerm, Membr
 %      .SeebeckCoefficient: Seebeck coefficient of 1 and 2 stage of TEC1
 %      .ElecConductance   : electrical conductance of 1 and 2 stage of TEC1
 %      .ThermConductance  : thermal conductance of 1 and 2 stage of TEC1
-%  I2   - (i real scalar) electrical current of TEC2 [A]
+%      .Voltage: input electrical voltage [V]
+%      .Current: input electrical current [A]
 %  TEC2 - (i struc) properties of TEC2
 %      .NumTC     : Number of thermocouples in TEC2
 %      .NumRatio  : ratio of thermocouples in the 1-stage TEC2 to those in
@@ -23,6 +23,8 @@ function [fval] = DCMD_Diff_TS(x, y, I1, TEC1, I2, TEC2, SInFeed, SInPerm, Membr
 %      .SeebeckCoefficient: Seebeck coefficient of 1 and 2 stage of TEC2
 %      .ElecConductance   : electrical conductance of 1 and 2 stage of TEC2
 %      .ThermConductance  : thermal conductance of 1 and 2 stage of TEC2
+%      .Voltage: input electrical voltage [V]
+%      .Current: input electrical current [A]
 %  SInFeed - (i struct) stream properties of feed-side influent
 %         .Temp: temperature [K]
 %         .MassFlow: mass flowrate [kg/s]
@@ -50,9 +52,9 @@ function [fval] = DCMD_Diff_TS(x, y, I1, TEC1, I2, TEC2, SInFeed, SInPerm, Membr
 TS1H = x(1); TS2C = x(2);
 TS1C = y(1); TS2H = y(1);
 % calculate the Q1H and Q2C
-Q1 = TE_Heat(TS1H, TS1C, I1, TEC1);
+Q1 = TE_Heat(TS1H, TS1C, TEC1);
 Q1H = Q1(1);
-Q2 = TE_Heat(TS2H, TS2C, I2, TEC2);
+Q2 = TE_Heat(TS2H, TS2C, TEC2);
 Q2C = Q2(2);
 % calculate the T1H and T1C by optimizing feed- and permeate-side 
 % temperatures to minimize DCMD_Diff_THTC()
