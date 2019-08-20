@@ -37,6 +37,6 @@ SOut.Density    = 1e3;
 SOut.Viscosity  = 1e-3;
 SOut.SpecHeat   = 4.18e3;
 SOut.ThermCond  = 0.6;
-SOut.Enthalpy   = W*SOut.ThermCond*T;
+SOut.Enthalpy   = W*SOut.SpecHeat*T;
 %
 end
