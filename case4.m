@@ -55,10 +55,30 @@ MembrProps = struct('TMH', [], 'TMC', [], 'Area', 0.0016, ...
 TEC = struct('NumTC', 190, 'NumRatio', 0, 'GeomFactor', 3.8e-4, ...
              'HTCoefficient', 270, 'HTArea', 0.0016, ...
              'SeebeckCoefficient', [], 'ElecConductance', [], ...
-             'ThermConductance', [], 'Voltage', 12, 'Current', 0.8);
+             'ThermConductance', [], 'Voltage', 12, 'Current', 1);
 TECs(1) = TEC; TECs(2) = TEC;
 T0 = [322.1; 320.0; 303.6; 303.2];
-TE = [298.15; 329.15];
+TE = [298.15; 307.7307];
 %% Solve temperatures
 fun = @(T)DCMD_EqSys(T, TE, TECs, SInFeed, SInPerm, MembrProps);
 [T, fvals, exitflag] = fsolve(fun, T0);
+%% Calculate the energy efficiency
+% COP of TECs
+COP = zeros(size(TECs));
+QH = zeros(size(TECs));
+QC = zeros(size(TECs));
+Q1 = TE_Heat(T(1), TE(1), TECs(1));
+QH(1) = Q1(1); QC(1) = Q1(2);
+COP(1) = QH(1)/(QH(1)-QC(1));
+Q2 = TE_Heat(TE(2), T(4), TECs(2));
+QH(2) = Q2(1); QC(2) = Q2(2);
+COP(2) = QC(2)/(QH(2)-QC(2));
+% Feed- and permeate-side effluents
+[~, SOutFeed] = DCMD_EqF(T(2), T(3), T(1), TE(1), TECs(1), ...
+                          SInFeed, SInPerm, MembrProps);
+[~, SOutPerm] = DCMD_EqF(T(2), T(3), TE(2), T(4), TECs(2), ...
+                          SInFeed, SInPerm, MembrProps);
+% Water permeation
+WF = SInFeed.MassFlow-SOutFeed.MassFlow;
+% Specific energy consumption
+SPC = (QH(1)-QC(1)+QH(2)-QC(2))/WF;
