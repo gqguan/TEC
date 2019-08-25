@@ -67,7 +67,7 @@ for i=1:NumStage
 end
 TEXs = [298.15; 307.7307];
 %% Solve temperatures
-opts = optimoptions('fsolve', 'Display', 'Iter');
+opts = optimoptions('fsolve', 'Display', 'Iter', 'MaxFunEvals', 15000, 'MaxIter', 1000);
 fun = @(T)DCMD_EqSys(T, TEXs, TECs, SInFeeds, SInPerms, Membranes);
 [T, fvals, exitflag] = fsolve(fun, T0, opts);
 [~, Q, QM, SM, SOutFeeds, SOutPerms] = fun(T);
