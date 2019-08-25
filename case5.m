@@ -61,26 +61,40 @@ TEC = struct('NumTC', 190, 'NumRatio', 0, 'GeomFactor', 3.8e-4, ...
              'SeebeckCoefficient', [], 'ElecConductance', [], ...
              'ThermConductance', [], 'Voltage', 12, 'Current', 0.8);
 TECs(1) = TEC; TECs(2) = TEC; TECs(3) = TEC;
-T0 = [322.1; 320.0; 319; 302; 303.6; 303.8]; 
+T0 = [322.1; 320.0; 319; 302; 303.6; 303.8;
+      322.1; 320.0; 319; 302; 303.6; 303.8]; 
 TEXs = [298.15; 307.7307];
 %% Solve temperatures
 opts = optimoptions('fsolve', 'Display', 'Iter');
 fun = @(T)DCMD_EqSys(T, TEXs, TECs, SInFeeds, SInPerms, Membranes);
 [T, fvals, exitflag] = fsolve(fun, T0, opts);
 %% Calculate the energy efficiency
-% COP of TECs
-COP = zeros(size(TECs));
-QH = zeros(size(TECs));
-QC = zeros(size(TECs));
-Q1 = TE_Heat(T(1), TEXs(1), TECs(1));
-QH(1) = Q1(1); QC(1) = Q1(2);
-COP(1) = QH(1)/(QH(1)-QC(1));
-Q2 = TE_Heat(TEXs(2), T(4), TECs(2));
-QH(2) = Q2(1); QC(2) = Q2(2);
-COP(2) = QC(2)/(QH(2)-QC(2));
-% Feed- and permeate-side effluents
-
+% Absorbed and released heats of TECs
+EC = zeros(size(TECs));
+Q(1,:) = TE_Heat(T(1), TEXs(1), TECs(1));
+EC(1) = Q(1,1)-Q(1,2);
+Q(2,:) = TE_Heat(T(7), T(6), TECs(2));
+EC(2) = Q(2,1)-Q(2,2);
+Q(3,:) = TE_Heat(TEXs(2), T(12), TECs(3));
+EC(3) = Q(3,1)-Q(3,2);
 % Water permeation
-
+SOutFeeds = SInFeeds; SOutPerms = SInPerms; % Initialize effluents
+SOutFeeds(1).Temp = T(2); SOutPerms(1).Temp = T(5);
+SOutFeeds(1) = DCMD_PackStream(SOutFeeds(1));
+SOutPerms(1) = DCMD_PackStream(SOutPerms(1));
+[QM(1), SM(1)] = DCMD_Permeation(-1, Membranes(1), SOutFeeds(1), SOutPerms(1));
+SOutFeeds(2).Temp = T(8); SOutPerms(2).Temp = T(11);
+SOutFeeds(2) = DCMD_PackStream(SOutFeeds(2));
+SOutPerms(2) = DCMD_PackStream(SOutPerms(2));
+[QM(2), SM(2)] = DCMD_Permeation(-1, Membranes(2), SOutFeeds(2), SOutPerms(2));
+% Feed- and permeate-side effluents
+for i = 1:2
+    SOutFeeds(i).MassFlow = SInFeeds(i).MassFlow+SM(i).MassFlow;
+    SOutFeeds(i) = DCMD_PackStream(SOutFeeds(i));
+    SOutPerms(i).MassFlow = SInPerms(i).MassFlow-SM(i).MassFlow;
+    SOutPerms(i) = DCMD_PackStream(SOutPerms(i));
+end
 % Specific energy consumption
-
+WP = abs(SM(1).MassFlow)+abs(SM(2).MassFlow);
+SEC = WP/sum(EC);
+%% Output results
