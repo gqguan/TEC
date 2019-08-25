@@ -73,11 +73,9 @@ fun = @(T)DCMD_EqSys(T, TEXs, TECs, SInFeeds, SInPerms, Membranes);
 % Energy consumption of TECs
 EC = Q(:,1)-Q(:,2);
 % Specific energy consumption
-WP = abs(SM(1).MassFlow)+abs(SM(2).MassFlow);
+WP = sum([SM.MassFlow]);
 SEC = sum(EC)/WP;
 %% Output results
-T = reshape(T, [6,2]);
-Stage_1 = T(:,1); Stage_2 = T(:,2);
+TOut = reshape(T, [6,length(SM)]);
 TNames = {'TSH';'TH';'TMH';'TMC';'TC';'TSC'};
-output = table(Stage_1, Stage_2, ...
-               'RowNames', TNames);
+Output = table(TOut, 'RowNames', TNames);
