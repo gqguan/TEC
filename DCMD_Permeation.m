@@ -1,4 +1,4 @@
-function [QP,STransMembr] = DCMD_SPerm(DirectOpt, MembrProps, SFeedSide, SPermSide)
+function [QM,SM] = DCMD_Permeation(DirectOpt, MembrProps, SFeedSide, SPermSide)
 %% calculate transmembrane permeation
 %  notes of I/O arguments
 %  DirectOpt  - (i integer scalar) opt = -1: flow into membrane
@@ -30,8 +30,8 @@ function [QP,STransMembr] = DCMD_SPerm(DirectOpt, MembrProps, SFeedSide, SPermSi
 %           .SpecHeat: specific heat [J/kg-K]
 %           .ThermCond: thermal conductivity [W/m-K]
 %           .Enthalpy: enthalpy [W]
-%  QTransMembr - (o real scalar) heat transfer across the membrane
-%  STransMembr - (o struct) variable of transmembrane stream
+%  QM - (o real scalar) heat transfer across the membrane
+%  SM - (o struct) variable of transmembrane stream
 %
 %  by Dr. Guan Guoqiang @ SCUT on 2019-08-13
 %
@@ -50,7 +50,7 @@ TM0 = [SFeedSide.Temp-1 SPermSide.Temp+1];
 % opts = optimoptions(@fmincon,'Display','off');
 % [TM,fval,exitflag] = fmincon(fun, TM0, [], [], [], [], lb, ub, [], opts);
 % use fminsearch() to get the TMs
-[TM,fval,exitflag] = fminsearch(fun, TM0);
+TM = fminsearch(fun, TM0);
 TMH = TM(1); TMC = TM(2);
 % get permeation flux according to the difference of vapor pressure
 PSH = DCMD_SatVapPressure(TMH, MF);
@@ -63,15 +63,13 @@ JH = JM*dHv+K/d*(TMH-TMC);
 % output
 switch DirectOpt
     case -1
-        STransMembr.Temp = TMH;
+        SM.Temp = TMH;
     case 1
-        STransMembr.Temp = TMC;
+        SM.Temp = TMC;
 end
-STransMembr.MassFlow = JM*MembrProps.Area;
-STransMembr.MassFraction = 0;
-STransMembr.SpecHeat = 4.18e3;
-STransMembr.Enthalpy = STransMembr.MassFlow * ...
-                       STransMembr.SpecHeat * ...
-                       STransMembr.Temp;
-QP = JH*MembrProps.Area;
+SM.MassFlow = DirectOpt*JM*MembrProps.Area;
+SM.MassFraction = 0;
+SM.SpecHeat = 4.18e3;
+SM = DCMD_PackStream(SM);
+QM = JH*MembrProps.Area;
 %
