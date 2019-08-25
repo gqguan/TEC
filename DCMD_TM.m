@@ -1,6 +1,7 @@
-function [TM] = DCMD_TM(Stream, JH)
+function [TM, h] = DCMD_TM(Stream, JH)
 %% calculate the temperature at the membrane surface
 %  notes of I/O arguments
+%  input arguments
 %  stream - (i struct) properties of stream
 %           .Temp: temperature [K]
 %           .MassFlow: mass flowrate [kg/s]
@@ -11,9 +12,14 @@ function [TM] = DCMD_TM(Stream, JH)
 %           .SpecHeat: specific heat [J/kg-K]
 %           .Enthalpy: enthalpy [W]
 %  JH     - (i real scalar) heat flux [W/m2]
-%  TM     - (o real scalar)
+%  output arguments
+%  TM     - (o real scalar) wall temperature [K]
+%  h      - (o real scalar) overall heat transfer coefficient of boundary
+%                           layer [W/m2-K]
 %
 %  by Dr. Guan Guoqiang @ SCUT on 2019-08-14
+%
+%  2019-08-24: add output of heat transfer coefficient
 %  
 % initialize
 L   = 0.008; % characteristic length [m]
