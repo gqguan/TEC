@@ -98,3 +98,8 @@ end
 WP = abs(SM(1).MassFlow)+abs(SM(2).MassFlow);
 SEC = WP/sum(EC);
 %% Output results
+T = reshape(T, [6,2]);
+Stage_1 = T(:,1); Stage_2 = T(:,2);
+TNames = {'TSH';'TH';'TMH';'TMC';'TC';'TSC'};
+output = table(Stage_1, Stage_2, ...
+               'RowNames', TNames);
