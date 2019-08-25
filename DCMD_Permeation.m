@@ -41,6 +41,7 @@ MF = SFeedSide.MassFraction;
 C  = MembrProps.MDCoefficient;
 K  = MembrProps.ThermConductivity;
 d  = MembrProps.Thickness;
+SM = struct(SPermSide);
 % calculate the temperature at the membrane surface 
 fun = @(TM)DCMD_Diff_TM(TM, SFeedSide, SPermSide, MembrProps);
 TM0 = [SFeedSide.Temp-1 SPermSide.Temp+1];
@@ -70,6 +71,7 @@ end
 SM.MassFlow = DirectOpt*JM*MembrProps.Area;
 SM.MassFraction = 0;
 SM.SpecHeat = 4.18e3;
+SM.Velocity = SM.MassFlow/SM.Density/MembrProps.Area;
 SM = DCMD_PackStream(SM);
 QM = JH*MembrProps.Area;
 %
