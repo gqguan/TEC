@@ -96,7 +96,7 @@ for i = 1:2
 end
 % Specific energy consumption
 WP = abs(SM(1).MassFlow)+abs(SM(2).MassFlow);
-SEC = WP/sum(EC);
+SEC = sum(EC)/WP;
 %% Output results
 T = reshape(T, [6,2]);
 Stage_1 = T(:,1); Stage_2 = T(:,2);
