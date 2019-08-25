@@ -68,32 +68,10 @@ TEXs = [298.15; 307.7307];
 opts = optimoptions('fsolve', 'Display', 'Iter');
 fun = @(T)DCMD_EqSys(T, TEXs, TECs, SInFeeds, SInPerms, Membranes);
 [T, fvals, exitflag] = fsolve(fun, T0, opts);
+[~, Q, QM, SM, SOutFeeds, SOutPerms] = fun(T);
 %% Calculate the energy efficiency
-% Absorbed and released heats of TECs
-EC = zeros(size(TECs));
-Q(1,:) = TE_Heat(T(1), TEXs(1), TECs(1));
-EC(1) = Q(1,1)-Q(1,2);
-Q(2,:) = TE_Heat(T(7), T(6), TECs(2));
-EC(2) = Q(2,1)-Q(2,2);
-Q(3,:) = TE_Heat(TEXs(2), T(12), TECs(3));
-EC(3) = Q(3,1)-Q(3,2);
-% Water permeation
-SOutFeeds = SInFeeds; SOutPerms = SInPerms; % Initialize effluents
-SOutFeeds(1).Temp = T(2); SOutPerms(1).Temp = T(5);
-SOutFeeds(1) = DCMD_PackStream(SOutFeeds(1));
-SOutPerms(1) = DCMD_PackStream(SOutPerms(1));
-[QM(1), SM(1)] = DCMD_Permeation(-1, Membranes(1), SOutFeeds(1), SOutPerms(1));
-SOutFeeds(2).Temp = T(8); SOutPerms(2).Temp = T(11);
-SOutFeeds(2) = DCMD_PackStream(SOutFeeds(2));
-SOutPerms(2) = DCMD_PackStream(SOutPerms(2));
-[QM(2), SM(2)] = DCMD_Permeation(-1, Membranes(2), SOutFeeds(2), SOutPerms(2));
-% Feed- and permeate-side effluents
-for i = 1:2
-    SOutFeeds(i).MassFlow = SInFeeds(i).MassFlow+SM(i).MassFlow;
-    SOutFeeds(i) = DCMD_PackStream(SOutFeeds(i));
-    SOutPerms(i).MassFlow = SInPerms(i).MassFlow-SM(i).MassFlow;
-    SOutPerms(i) = DCMD_PackStream(SOutPerms(i));
-end
+% Energy consumption of TECs
+EC = Q(:,1)-Q(:,2);
 % Specific energy consumption
 WP = abs(SM(1).MassFlow)+abs(SM(2).MassFlow);
 SEC = sum(EC)/WP;
