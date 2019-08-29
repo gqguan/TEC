@@ -1,7 +1,7 @@
 %% Calculate temperatures of stacked DCMD module with TEHPs
-%  For the scenario of 2-stack DCMD integrated with 3 TEHPs
+%  For the scenario of N-stage DCMD integrated with N+1 TEHPs
 %
-%  by Dr. GUAN, Guoqiang @ SCUT on 2019-08-19
+%  by Dr. GUAN, Guoqiang @ SCUT on 2019-08-30
 %
 %% Initialize
 clear;
@@ -81,3 +81,4 @@ SEC = sum(EC)/WP;
 TOut = reshape(T, [6,length(SM)]);
 TNames = {'TSH';'TH';'TMH';'TMC';'TC';'TSC'};
 Output = table(TOut, 'RowNames', TNames);
+fprintf('Specific energy consumption of %d-stage DCMD is %.4e W/kg.\n', NumStage, SEC);
