@@ -5,7 +5,7 @@
 %
 %% Initialize
 clear;
-NumStage = 3;
+NumStage = 6;
 %  SInFeed - properties of feed-side influent
 %           .Temp: temperature [K]
 %           .MassFlow: mass flowrate [kg/s]
@@ -63,7 +63,7 @@ TEC = struct('NumTC', 190, 'NumRatio', 0, 'GeomFactor', 3.8e-4, ...
              'ThermConductance', [], 'Voltage', 12, 'Current', 0.8);
 TECs(1:(NumStage+1)) = TEC;
 for i=1:NumStage
-    T0((1+(i-1)*6):6*i) = [322.1; 320.0; 319; 302; 303.6; 303.8];
+    T0((1+(i-1)*6):6*i) = [328.4; 323.2; 319.0; 307.3; 303.1; 299.2];
 end
 TEXs = [298.15; 307.7307];
 %% Solve temperatures
