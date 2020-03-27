@@ -21,15 +21,12 @@ switch length(x)
         TEC.NumRatio   = x(1);
         TEC.GeomFactor = x(2);
 end
-% calculate the number of thermocouples in the first stage of 2-stage TEC
-N0 = TEC.NumTC/(TEC.NumRatio+1); 
 %
 % 计算理论吸、放热量
 NumExpData = height(ExpData);
 for i = 1: NumExpData
     % 计算电流上下边界
-    IBound = TE_Current(ExpData.TH(i), ExpData.TH(i), N0, ...
-                        TEC.NumRatio, TEC.GeomFactor, 1);
+    IBound = TE_Current(ExpData.TH(i), ExpData.TH(i), TEC, 1);
     IMax = max(IBound);
     IMin = min(IBound);
     % 判定实验测得电流是否在理论范围
