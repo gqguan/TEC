@@ -37,10 +37,14 @@ for i = 1: NumExpData
                 ExpData.I(i), IMin, IMax);
         return;
     end
+    % 输入实验时TEC的电压和电流
+    TEC.Voltage = ExpData.U(i);
+    TEC.Current = ExpData.I(i);
+    % 计算TEC吸放热量
     [Q, TEC] = TE_Heat(ExpData.TH(i), ExpData.TC(i), TEC);
     QH(i) = Q(1);
     QC(i) = Q(2);
-    COP(i) = QC(i)./(QH(i)-QC(i));
+%     COP(i) = QC(i)./(QH(i)-QC(i));
 end
 % 输出结果
 output.TEC = TEC;
