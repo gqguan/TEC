@@ -43,4 +43,8 @@ switch TEC.NumRatio
         Q(2) = (I*a(2)*Tc-I^2*R(2)/2-K(2)*(Tm-Tc))*N0;
 end
 %
+%% Êä³ö
+TEC.SeebeckCoefficient = a;
+TEC.ElecConductance = R;
+TEC.ThermConductance = K;
 end
