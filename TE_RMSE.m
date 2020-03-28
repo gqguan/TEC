@@ -1,11 +1,13 @@
-function [ RMSE ] = TE_RMSE( x, TEC, ExpData )
+function [ RMSE output ] = TE_RMSE( x, TEC, ExpData )
 %% calculate the RMSE between predicted and experimental results
 %  notes of I/O arguments
 %  x       - (i double array) [NumRatio GeomFactor] of thermocouples
-%  TEC     - (i struction) initial parameters of thermocouples,
+%  TEC     - (i structure) initial parameters of thermocouples,
 %                          ref. to "TE_ImportExpData.m"
 %  ExpData - (i table) experimental results, ref. to "TE_ImportExpData.m"
 %  RMSE    - (o double scalar) RMSE(ExpData.QH-QH)
+%  output  - (o structure) .TEC: output TEC parameters
+%                          .results: list results of exp. vs sim.
 %
 %  by Dr. Guan Guoqiang @ SCUT on 2019-08-09
 %
@@ -26,7 +28,7 @@ end
 NumExpData = height(ExpData);
 for i = 1: NumExpData
     % 计算电流上下边界
-    IBound = TE_Current(ExpData.TH(i), ExpData.TH(i), TEC, 1);
+    IBound = TE_Current(ExpData.TH(i), ExpData.TH(i), TEC, 0);
     IMax = max(IBound);
     IMin = min(IBound);
     % 判定实验测得电流是否在理论范围
@@ -35,11 +37,14 @@ for i = 1: NumExpData
                 ExpData.I(i), IMin, IMax);
         return;
     end
-    [Q, ~] = TE_Heat(ExpData.TH(i), ExpData.TC(i), TEC);
+    [Q, TEC] = TE_Heat(ExpData.TH(i), ExpData.TC(i), TEC);
     QH(i) = Q(1);
     QC(i) = Q(2);
     COP(i) = QC(i)./(QH(i)-QC(i));
 end
+% 输出结果
+output.TEC = TEC;
+output.results = table(ExpData.TH, ExpData.TH, QH, QC);
 % COP_exp = ExpData.QC./(ExpData.QH-ExpData.QC);
 % RMSE = MVA_diff(COP_exp, COP, 'RMSE')/mean(COP_exp) ...
 %       +MVA_diff(ExpData.QC, QC, 'RMSE')/mean(ExpData.QC);
