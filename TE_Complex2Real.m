@@ -8,8 +8,8 @@ function [xout] = TE_Complex2Real(xin, imag_err)
 %  by Dr. Guan Guoqiang @ SCUT on 2019-08-07
 % 
 %%
-% get the array where each element's real part is greater than 0
-x = xin(real(xin)>0);
+% get the array where each element's real part is not negative
+x = xin(real(xin)>=0);
 % get the real part of the arry where each element's imaginary part is less
 % than imag_err
 xout = double(real(x(imag(x)<imag_err)));

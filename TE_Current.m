@@ -1,4 +1,4 @@
-function [Ival, Tval] = TE_Current(Th, Tc, TEC, opt)
+function [Ival, Tval] = TE_Current(Th, Tc, TEC)
 %% Calculate current according hot- and cold-side temperatures
 %  notes of I/O arguments
 %  Th  - (i double scalar) hot-side temperature [K]
@@ -8,12 +8,11 @@ function [Ival, Tval] = TE_Current(Th, Tc, TEC, opt)
 %        NumRatio  : ratio of thermocouples in the 1-stage TEC to those in
 %                     the 2-stage TEC
 %        GeomFactor: geometry factor of thermcouples in TEC [m]
+%                 ** the unit of GeomFactor shall be [m-1] due to eq.(6)
+%                    and (7) in ref
 %        SeebeckCoefficient: Seebeck coefficient of 1 and 2 stage of TEC
 %        ElecConductance   : electrical conductance of 1 and 2 stage of TEC
 %        ThermConductance  : thermal conductance of 1 and 2 stage of TEC
-%  opt - (i optional integer scalar) running mode
-%        0: (default) currents of one-stage TEC to make Qc = 0
-%        1:           currents of two-stage TEC to make Qc = 0
 %  Ival- (o double array(2) for opt = 0) currents in one-stage TEC [A]
 %        (o double array for opt = 1) currents in two-stage TEC [A]
 %  Tval- (o double scalar for opt = 0) junction temperature [K]
@@ -27,9 +26,12 @@ function [Ival, Tval] = TE_Current(Th, Tc, TEC, opt)
 %  2019-08-10: update according to the new TE_Tm()
 %
 %% function body
-% default argument of input opt
-if nargin < 4 || TEC.NumRatio == 0
+%  opt = 0: currents of one-stage TEC to make Qc = 0
+%        1: currents of two-stage TEC to make Qc = 0
+if TEC.NumRatio == 0
     opt = 0;
+else
+    opt = 1;
 end
 % use temperature-independant properties at T = (Th+Tc)/2
 [a, R, K] = TE_MaterialProp((Th+Tc)/2, TEC.GeomFactor);
