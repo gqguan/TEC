@@ -35,8 +35,7 @@ for i = 1: NumExpData
                 ExpData.I(i), IMin, IMax);
         return;
     end
-    [Q, ~, ~, ~] = TE_Heat(ExpData.TH(i), ExpData.TC(i), ExpData.I(i), ...
-                           N0, TEC.NumRatio, TEC.GeomFactor);
+    [Q, ~] = TE_Heat(ExpData.TH(i), ExpData.TC(i), TEC);
     QH(i) = Q(1);
     QC(i) = Q(2);
     COP(i) = QC(i)./(QH(i)-QC(i));
