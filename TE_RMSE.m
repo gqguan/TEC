@@ -27,8 +27,10 @@ end
 % 计算理论吸、放热量
 NumExpData = height(ExpData);
 for i = 1: NumExpData
+    % TEC冷热侧温度
+    TC = ExpData.TC(i)+273.15; TH = ExpData.TH(i)+273.15;
     % 计算电流上下边界
-    IBound = TE_Current(ExpData.TH(i), ExpData.TH(i), TEC, 0);
+    IBound = TE_Current(TH, TC, TEC, 0);
     IMax = max(IBound);
     IMin = min(IBound);
     % 判定实验测得电流是否在理论范围
