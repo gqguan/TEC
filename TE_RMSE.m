@@ -44,7 +44,11 @@ for i = 1: NumExpData
 end
 % Êä³ö½á¹û
 output.TEC = TEC;
-output.results = table(ExpData.TH, ExpData.TH, QH, QC);
+tabout = table(ExpData.QH, 'VariableNames', {'QH_EXP'});
+tabout = [tabout,table(ExpData.QC, 'VariableNames', {'QC_EXP'})];
+tabout = [tabout,table(QH, 'VariableNames', {'QH_SIM'})];
+tabout = [tabout,table(QC, 'VariableNames', {'QC_SIM'})];
+output.results = tabout;
 % COP_exp = ExpData.QC./(ExpData.QH-ExpData.QC);
 % RMSE = MVA_diff(COP_exp, COP, 'RMSE')/mean(COP_exp) ...
 %       +MVA_diff(ExpData.QC, QC, 'RMSE')/mean(ExpData.QC);
