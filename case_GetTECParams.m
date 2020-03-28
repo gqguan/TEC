@@ -23,5 +23,5 @@ f = @(x)(TE_RMSE(x,TEC,ExpData));
 % 获得优化参数
 x = fminsearch(f, x0, options);
 %% 输出结果
-output = f(x);
+[~,output] = f(x);
 output.results
