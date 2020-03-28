@@ -11,7 +11,8 @@ function [Ival, Tval] = TE_Current(Th, Tc, TEC, opt)
 %        SeebeckCoefficient: Seebeck coefficient of 1 and 2 stage of TEC
 %        ElecConductance   : electrical conductance of 1 and 2 stage of TEC
 %        ThermConductance  : thermal conductance of 1 and 2 stage of TEC
-%  opt - (i optional integer scalar) running mode
+%  opt - (i optional integer scalar) running mode 
+%                                    autoset as 0 in case of TEC.NumRatio=0
 %        0: (default) currents of one-stage TEC to make Qc = 0
 %        1:           currents of two-stage TEC to make Qc = 0
 %  Ival- (o double array(2) for opt = 0) currents in one-stage TEC [A]
