@@ -30,20 +30,22 @@ for i = 1: NumExpData
     % TEC冷热侧温度
     TC = ExpData.TC(i)+273.15; TH = ExpData.TH(i)+273.15;
     % 计算电流上下边界
-    IBound = TE_Current(TH, TC, TEC, 0);
+    IBound = TE_Current(TH, TH, TEC); % 冷侧温度与热侧相同
     IMax = max(IBound);
     IMin = min(IBound);
     % 判定实验测得电流是否在理论范围
     if (ExpData.I(i) > IMax || ExpData.I(i) < IMin)
         fprintf('Given current %5.3f is out of range [%5.3f %5.3f]!\n', ...
                 ExpData.I(i), IMin, IMax);
+        output = [];
+        RMSE = [];
         return;
     end
     % 输入实验时TEC的电压和电流
     TEC.Voltage = ExpData.U(i);
     TEC.Current = ExpData.I(i);
     % 计算TEC吸放热量
-    [Q, TEC] = TE_Heat(ExpData.TH(i), ExpData.TC(i), TEC);
+    [Q, TEC] = TE_Heat(TH, TC, TEC);
     QH(i) = Q(1);
     QC(i) = Q(2);
 %     COP(i) = QC(i)./(QH(i)-QC(i));
@@ -56,9 +58,9 @@ tabout = [tabout,table(QH, 'VariableNames', {'QH_SIM'})];
 tabout = [tabout,table(QC, 'VariableNames', {'QC_SIM'})];
 output.results = tabout;
 % COP_exp = ExpData.QC./(ExpData.QH-ExpData.QC);
-% RMSE = MVA_diff(COP_exp, COP, 'RMSE')/mean(COP_exp) ...
-%       +MVA_diff(ExpData.QC, QC, 'RMSE')/mean(ExpData.QC);
-RMSE = MVA_diff(ExpData.QH, QH, 'RMSE');
+RMSE = MVA_diff(ExpData.QH, QH, 'RMSE')/mean(ExpData.QH) ...
+      +MVA_diff(ExpData.QC, QC, 'RMSE')/mean(ExpData.QC);
+% RMSE = MVA_diff(ExpData.QH, QH, 'RMSE');
 %
 end
 
