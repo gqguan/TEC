@@ -24,4 +24,16 @@ f = @(x)(TE_RMSE(x,TEC,ExpData));
 x = fminsearch(f, x0, options);
 %% 输出结果
 [~,output] = f(x);
-output.results
+% 输入TEC部件号
+output.pid = input('Input TEC part no.: ', 's');
+% 构造表
+current_tab = struct2table(output, 'AsArray', 1);
+% 当前目录存在TEC参数文件时载入表TEC_Params
+if exist('TEC_Params.mat') == 2
+    load('TEC_Params.mat')
+    TEC_Params = [TEC_Params;current_tab];
+else
+    TEC_Params = current_tab;
+end
+% 结果存盘
+save('TEC_Params.mat', 'TEC_Params')
