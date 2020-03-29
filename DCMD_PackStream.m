@@ -1,7 +1,8 @@
-function [SOut, flag] = DCMD_PackStream(SIn)
-%% Complete the stream's properties according to its T and MF
+function [SOut, flag] = DCMD_PackStream(SIn, DuctGeom)
+%% Complete the stream's velocity, Reynolds number and enthalpy
 %  notes of arguments
-%  SIn  - (i struct) stream properties
+%  input arguments
+%  SIn  - (struct) stream properties
 %           .Temp: temperature [K]
 %           .MassFlow: mass flowrate [kg/s]
 %           .Velocity: velocity [m/s]
@@ -11,7 +12,13 @@ function [SOut, flag] = DCMD_PackStream(SIn)
 %           .SpecHeat: specific heat [J/kg-K]
 %           .ThermCond: thermal conductivity [W/m-K]
 %           .Enthalpy: enthalpy [W]
-%  SOut - (o struct) stream properties
+%  DuctGeom - geometric parameters of duct in flatsheet MD module
+%           .Length (real) length along the flowing direction [m]
+%           .Height (real) height of rectanglarly wetted perimeter [m]
+%           .Width  (real)  width of rectanglarly wetted perimeter [m]
+%
+%  output arguments
+%  SOut - (struct) stream properties
 %           .Temp: temperature [K]
 %           .MassFlow: mass flowrate [kg/s]
 %           .Velocity: velocity [m/s]
@@ -21,22 +28,47 @@ function [SOut, flag] = DCMD_PackStream(SIn)
 %           .SpecHeat: specific heat [J/kg-K]
 %           .ThermCond: thermal conductivity [W/m-K]
 %           .Enthalpy: enthalpy [W]
-%  flag - (o integer scalar) = 0 normal exit
+%  flag - (integer scalar) = 0 normal exit
 %                             -1 abnormal
 %
 %  by Dr. Guan Guoqiang @ SCUT on 2019-08-16
 %
+% 2019-09-02 (GGQ) add 2nd input argument to calculate avg. velocity
+%
+% default argument of optional input
+if nargin < 2
+    DuctGeom = struct('Length', 0.04,  'Height', 0.006, 'Width',  0.04 );
+end
 % initialize
 flag = 0;
 SOut = SIn;
 T = SIn.Temp;
 W = SIn.MassFlow;
-MF = SIn.MassFraction;
-% correlate the stream's properties
-SOut.Density    = 1e3;
-SOut.Viscosity  = 1e-3;
-SOut.SpecHeat   = 4.18e3;
-SOut.ThermCond  = 0.6;
-SOut.Enthalpy   = W*SOut.SpecHeat*T;
+xw = SIn.MassFraction;
+% correlate the stream's physical properties
+rho = SIn.Density  ;
+mu  = SIn.Viscosity;
+cp  = SIn.SpecHeat ;
+k   = SIn.ThermCond;
+% get geometry of duct
+Length = DuctGeom.Length;
+Width  = DuctGeom.Width;
+Height = DuctGeom.Height;
+% calculate 
+v  = W/rho/(Width*Height); % average velocity [m/s]
+Dh = (Width*Height)/(Width+Height); % hydraulic diameter [m]
+De = sqrt((Width*Height))/pi*4; % equivalent diameter [m]
+Re = De*v*rho/mu; % Reynolds number according to equivalent diameter
+H  = W*cp*T; % fluid enthalpy [W]
+% output
+SOut.Temp         = T;
+SOut.Velocity     = v;
+SOut.MassFraction = xw;
+SOut.Density      = rho;
+SOut.Viscosity    = mu;
+SOut.SpecHeat     = cp;
+SOut.ThermCond    = k;
+SOut.Enthalpy     = H;
+SOut.Re           = Re;
 %
 end

@@ -5,36 +5,42 @@
 %
 %% Initialize
 clear;
-NumStage = 6;
-%  SInFeed - properties of feed-side influent
-%           .Temp: temperature [K]
-%           .MassFlow: mass flowrate [kg/s]
-%           .Velocity: velocity [m/s]
-%           .MassFraction: mass fraction of NaCl
-%           .Density: density [kg/m3]
-%           .Viscosity: dynamic viscosity [Pa-s]
-%           .SpecHeat: specific heat [J/kg-K]
-%           .ThermCond: thermal conductivity [W/m-K]
-%           .Enthalpy: enthalpy [W]
-SInFeed = struct('Temp', 323.15,     ...
-                 'MassFlow', 0.015,  ...
-                 'Velocity', 0.015*1e-3/(0.04*0.006),  ...
+NumStage = 2;
+W1 = 0.015; W2 = 0.015;
+T1 = 323.15; T2 = 303.15;
+%  DuctGeom - geometric parameters of flowing channel in MD module
+%           .Length (real array(2)) length along the flowing direction in 
+%                                   both sides of MD module [m]
+%           .Height (real array(2)) height of rectanglarly wetted perimeter
+%                                   in both sides of MD module [m]
+%           .Width (real array(2))  width of rectanglarly wetted perimeter
+%                                   in both sides of MD module [m]
+DuctGeom = struct('Length', 0.04,  ...
+                 'Height', 0.006, ...
+                 'Width',  0.04 );
+% initial properties of feed-side influent
+SInFeed = struct('Temp', T1,     ...
+                 'MassFlow', W1,  ...
                  'MassFraction', 0,  ...
                  'Density', 1e3,     ...
                  'Viscosity', 1e-3,  ...
                  'SpecHeat', 4.18e3, ...
-                 'ThermCond', 0.6,   ...
-                 'Enthalpy', 0.015*4180*323.15);
+                 'ThermCond', 0.6);
+% calculate the rest properties of feed-side influent
+SInFeed = DCMD_PackStream(SInFeed);
+% get all feed-side influents for each stages
 SInFeeds(1:NumStage) = SInFeed;
-SInPerm = struct('Temp', 303.15,     ...
-                 'MassFlow', 0.015,  ...
-                 'Velocity', 0.015*1e-3/(0.04*0.006),  ...
+% initial properties of permeate-side influent
+SInPerm = struct('Temp', T2,         ...
+                 'MassFlow', W2,     ...
                  'MassFraction', 0,  ...
                  'Density', 1e3,     ...
                  'Viscosity', 1e-3,  ...
                  'SpecHeat', 4.18e3, ...
-                 'ThermCond', 0.6,   ...
-                 'Enthalpy', 0.015*4180*303.15);
+                 'ThermCond', 0.6);
+% calculate the rest properties of permeate-side influent
+SInPerm = DCMD_PackStream(SInPerm);
+% get all permeate-side influents for each stage
 SInPerms(1:NumStage) = SInPerm;
 %  MembrProps.TMH: hot-side temperature of membrane [K]
 %            .TMC: cold-side temperature of membrane [K]
@@ -61,11 +67,15 @@ TEC = struct('NumTC', 190, 'NumRatio', 0, 'GeomFactor', 3.8e-4, ...
              'HTCoefficient', 270, 'HTArea', 0.0016, ...
              'SeebeckCoefficient', [], 'ElecConductance', [], ...
              'ThermConductance', [], 'Voltage', 12, 'Current', 0.8);
+% set properties for all TECs
 TECs(1:(NumStage+1)) = TEC;
+% set the initial temperatures for all stages
 for i=1:NumStage
-    T0((1+(i-1)*6):6*i) = [328.4; 323.2; 319.0; 307.3; 303.1; 299.2];
+    T0((1+(i-1)*6):6*i) = [T1+1; T1; T1-1; T2+1; T2; T2-1];
 end
-TEXs = [298.15; 307.7307];
+% set room temperature as the environmental temperature of both heat source
+% and sink
+TEXs = [298.15; 298.15];
 %% Solve temperatures
 opts = optimoptions('fsolve', 'Display', 'Iter', 'MaxFunEvals', 15000, 'MaxIter', 1000);
 fun = @(T)DCMD_EqSys(T, TEXs, TECs, SInFeeds, SInPerms, Membranes);
@@ -75,10 +85,41 @@ fun = @(T)DCMD_EqSys(T, TEXs, TECs, SInFeeds, SInPerms, Membranes);
 % Energy consumption of TECs
 EC = Q(:,1)-Q(:,2);
 % Specific energy consumption
-WP = sum([SM.MassFlow]);
-SEC = sum(EC)/WP;
+WP_Sum = sum([SM.MassFlow]);
+SEC = sum(EC)/WP_Sum;
+% Coefficient of performance
+COP_H = Q(:,1)./EC; % heating COPs of TEHP
+COP_C = Q(:,2)./EC; % refrigrating COPs of TEHP
 %% Output results
-TOut = reshape(T, [6,length(SM)]);
-TNames = {'TSH';'TH';'TMH';'TMC';'TC';'TSC'};
-Output = table(TOut, 'RowNames', TNames);
 fprintf('Specific energy consumption of %d-stage DCMD is %.4e W/kg.\n', NumStage, SEC);
+% Performances of membrane separation in each stage
+StageNames = cell(NumStage,1);
+JM = zeros(NumStage,1);
+JH = zeros(NumStage,1);
+for i = 1:NumStage
+    StageNames{i} = sprintf('Stage-%d', i);
+    JM(i) = SM(i).MassFlow/Membranes(i).Area;
+    JH(i) = QM(i)/Membranes(i).Area;
+end
+TOut = reshape(T, [6,length(SM)]); % Temperature profiles of each stage
+TSH = TOut(1,:)';
+TH  = TOut(2,:)';
+TMH = TOut(3,:)';
+TMC = TOut(4,:)';
+TC  = TOut(5,:)';
+TSC = TOut(6,:)';
+Output_Stages = table(TSH, TH, TMH, TMC, TC, TSC, JH, JM, ...
+                      'RowNames', StageNames)
+% Performances of TEHPs
+TECNames = cell(NumStage+1,1);
+for i = 1:(NumStage+1)
+    TECNames{i} = sprintf('TEHP-%d', i);
+end
+TS_Hots(1:NumStage,1)  = TOut(1,:)';
+TS_Hots(NumStage+1,1) = TEXs(2);
+TS_Colds(1,1) = TEXs(1);
+TS_Colds(2:NumStage+1,1) = TOut(6,:)';
+Q1 = Q(:,1);
+Q2 = Q(:,2);
+Output_TEHP = table(COP_H, COP_C, TS_Hots, TS_Colds, Q1, Q2, EC, ...
+                    'RowNames', TECNames)

@@ -28,11 +28,11 @@ N0 = TEC.NumTC/(TEC.NumRatio+1);
 I = TEC.Current;
 %% Calculate the absorbed and released heats
 switch TEC.NumRatio
-    case 0
+    case 0 % 单层结构
         [a, R, K] = TE_MaterialProp((Th+Tc)/2, TEC.GeomFactor);
         Q(1) = (I*a*Th+I^2*R/2-K*(Th-Tc))*N0;
         Q(2) = (I*a*Tc-I^2*R/2-K*(Th-Tc))*N0;
-    otherwise
+    otherwise % 两层结构
         % Get Tm
         [Tm, TEC] = TE_Tm(Th, Tc, I, TEC);
         a = TEC.SeebeckCoefficient;
@@ -43,4 +43,8 @@ switch TEC.NumRatio
         Q(2) = (I*a(2)*Tc-I^2*R(2)/2-K(2)*(Tm-Tc))*N0;
 end
 %
+%% 输出
+TEC.SeebeckCoefficient = a;
+TEC.ElecConductance = R;
+TEC.ThermConductance = K;
 end
