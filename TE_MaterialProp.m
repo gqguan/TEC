@@ -1,8 +1,17 @@
-function [ alpha, R, K ] = TE_MaterialProp( T_avg, gf )
+function [ TEC ] = TE_MaterialProp( T_avg, TEC )
 %% calculate temperature dependent properties
-%   Notes of I/O arguments
-%   T_avg - (i double scalar) average temperature [K]
-%   gf    - (i double scalar) geometric factor
+%  Notes of I/O arguments
+%  T_avg - (i double scalar) average temperature [K]
+%  TEC   - (i/o struc) struc variable
+%     .NumTC     : Number of thermocouples in TEC
+%     .NumRatio  : ratio of thermocouples in the 1-stage TEC to those in
+%                    the 2-stage TEC
+%     .GeomFactor: geometry factor of thermcouples in TEC [m]
+%     .SeebeckCoefficient: Seebeck coefficient of 1 and 2 stage of TEC
+%     .ElecConductance   : electrical conductance of 1 and 2 stage of TEC
+%     .ThermConductance  : thermal conductance of 1 and 2 stage of TEC
+%     .Voltage: input electrical voltage [V]
+%     .Current: input electrical current [A]
 %   alpha - (o double scalar) Seebeck coefficient [V/K]
 %   R     - (o double scalar) electrical conductance [ohm]
 %   K     - (o double scalar) thermal conductance [W/K]
@@ -26,9 +35,9 @@ for i = 1:3
     results(i) = dot(params(i,:), Ts); % results = [alpha rho kappa]
 end
 %% Êä³ö½á¹û
-alpha = (results(1)+results(1));
-R     = (results(2)+results(2))/gf;
-K     = (results(3)+results(3))*gf;
+TEC.SeebeckCoefficient = (results(1)+results(1));
+TEC.ElecConductance    = (results(2)+results(2))/TEC.GeomFactor;
+TEC.ThermConductance   = (results(3)+results(3))*TEC.GeomFactor;
 %
 end
 

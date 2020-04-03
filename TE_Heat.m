@@ -53,7 +53,10 @@ switch opt
         % Calculate the absorbed and released heats
         switch TEC.NumRatio
             case 0 % 单层结构
-                [a, R, K] = TE_MaterialProp((Th+Tc)/2, TEC.GeomFactor);
+                TEC = TE_MaterialProp((Th+Tc)/2, TEC);
+                a = TEC.SeebeckCoefficient;
+                R = TEC.ElecConductance;
+                K = TEC.ThermConductance;
                 Q(1) = (I*a*Th+I^2*R/2-K*(Th-Tc))*N0;
                 Q(2) = (I*a*Tc-I^2*R/2-K*(Th-Tc))*N0;
                 % 输出TEC性能参数
