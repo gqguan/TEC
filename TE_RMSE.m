@@ -5,7 +5,7 @@ function [ RMSE output ] = TE_RMSE( x, TEC, ExpData )
 %  TEC     - (i structure) initial parameters of thermocouples,
 %                          ref. to "TE_ImportExpData.m"
 %  ExpData - (i table) experimental results, ref. to "TE_ImportExpData.m"
-%  RMSE    - (o double scalar) RMSE(ExpData.QH-QH)
+%  RMSE    - (o double scalar) RMSE
 %  output  - (o structure) .TEC: output TEC parameters
 %                          .results: list results of exp. vs sim.
 %
