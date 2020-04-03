@@ -1,27 +1,57 @@
-function [ RMSE output ] = TE_RMSE( x, TEC, ExpData )
+function [ RMSE output ] = TE_RMSE( x, TEC, ExpData, opt )
 %% calculate the RMSE between predicted and experimental results
 %  notes of I/O arguments
 %  x       - (i double array) [NumRatio GeomFactor] of thermocouples
 %  TEC     - (i structure) initial parameters of thermocouples,
 %                          ref. to "TE_ImportExpData.m"
 %  ExpData - (i table) experimental results, ref. to "TE_ImportExpData.m"
+%  opt     - (i integer scalar) optional running mode
+%            = 0 (default): 按参考文献[1]计算吸放热量
+%            = 1          : 按参考文献[2]计算吸放热量
 %  RMSE    - (o double scalar) RMSE
 %  output  - (o structure) .TEC: output TEC parameters
 %                          .results: list results of exp. vs sim.
 %
 %  by Dr. Guan Guoqiang @ SCUT on 2019-08-09
 %
+%  References
+%  [1] Xuan X C, et al. Cryogenics, 2002, 42: 273-278.
+%  [2] Huang B J, et al. International Journal of Refrigeration 2000, 23(3): 208-218.
+%
 %% function body
 % initialize
+% 运行模式参数设定
+switch nargin
+    case(3) % 函数调用时不输入opt
+        opt = 0;
+    case(4)
+        if opt ~= 0 && opt ~= 1
+            fprintf('[ERROR] Unknown specified running mode of %d for TE_RMSE()\n', opt)
+            return
+        end
+end
+%
 QH  = zeros(size(ExpData.QH));
 QC  = zeros(size(ExpData.QC));
-% reset TEC according to the given x
-switch length(x)
-    case 1 % x = GeomFactor
-        TEC.GeomFactor = x;
-    case 2 % x = [NumRatio GeomFactor]
-        TEC.NumRatio   = x(1);
-        TEC.GeomFactor = x(2);
+switch opt
+    case(0)
+        % reset TEC according to the given x
+        switch length(x)
+            case 1 % x = GeomFactor
+                TEC.GeomFactor = x;
+            case 2 % x = [NumRatio GeomFactor]
+                TEC.NumRatio   = x(1);
+                TEC.GeomFactor = x(2);
+        end
+    case(1) % TEC参数为定值
+        if length(x) ~= 3
+            fprintf('[ERROR] Incorrect Length(x) = %d\n', length(x))
+            return
+        end
+        % reset TEC parameters
+        TEC.SeebeckCoefficient = x(1);
+        TEC.ElecConductance = x(2);
+        TEC.ThermConductance = x(3);
 end
 %
 % 计算理论吸、放热量
@@ -45,7 +75,7 @@ for i = 1: NumExpData
     TEC.Voltage = ExpData.U(i);
     TEC.Current = ExpData.I(i);
     % 计算TEC吸放热量
-    [Q, TEC] = TE_Heat(TH, TC, TEC);
+    [Q, TEC] = TE_Heat(TH, TC, TEC, opt);
     QH(i) = Q(1);
     QC(i) = Q(2);
 %     COP(i) = QC(i)./(QH(i)-QC(i));
