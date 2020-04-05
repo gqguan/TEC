@@ -58,8 +58,10 @@ N0 = TEC.NumTC/(TEC.NumRatio+1);
 switch TECStage
     case 1
         syms I;
-        eq12 = 0 == I*a*Tc-I^2*R/2-K*(Th-Tc);
-        Ival = eval(solve(eq12, I));
+%         eq12 = 0 == I*a*Tc-I^2*R/2-K*(Th-Tc);
+%         Ival = eval(solve(eq12, I));
+        Ival = [(Tc*a - (Tc^2*a^2 + 2*K*R*Tc - 2*K*R*Th)^(1/2))/R, ...
+                (Tc*a + (Tc^2*a^2 + 2*K*R*Tc - 2*K*R*Th)^(1/2))/R];
         Tval = 0;
     case 2
         syms I Tm;
