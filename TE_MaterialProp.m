@@ -50,7 +50,7 @@ switch opt
         TEC.NumRatio = 0; % 将r值设定为0，即按单层TEC结构计算
         % 按计算参数设定温度向量
         Ts = zeros(1, size(params, 2));
-        for i = 1, size(params, 2)
+        for i = 1:size(params, 2)
             Ts(i) = 1*T_avg^(i-1);
         end
 end
