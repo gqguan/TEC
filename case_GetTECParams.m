@@ -40,6 +40,7 @@ switch opt
     case(1) % 优化(a R K)值，见参考文献[2]
         opt2a = input('Input polynomial order to correlate the (a R K) values: ');
         x0 = ones(3, opt2a+1);
+        x0(:,2:(opt2a+1)) = 0;
     otherwise
         prompt = sprintf('Unknown running mode of %d in case_GetTECParams.m', opt);
         TE_log(prompt, 1);
