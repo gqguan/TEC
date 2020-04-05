@@ -5,7 +5,7 @@
 %
 % by Dr. Guan Guoqiang @ SCUT on 2020-04-05
 %
-function output = TE_log(content, status, opt)
+function TE_log(content, status, opt)
 % 函数调用输入、输出参数说明
 % content - (i string) 单行日志内容字段
 % status  - (i integer scalar) 可选当前运行状态代码
@@ -14,7 +14,7 @@ function output = TE_log(content, status, opt)
 %                             2 - [WARNING]
 % opt     - (i integer scalar) 可选程序操作代码
 %                             0 - (缺省值) 显示当前记录并添加到日志
-% output  - (o string) 命令行输出当前日志
+%                             1 - 添加当前记录到日志变量但不显示
 
 %% 初始化
 switch nargin
@@ -50,8 +50,12 @@ end
 output = struct2table(log_str, 'AsArray', 1);
 
 %% 输出
-% 命令行显示当前日志记录
-fprintf('%s - %s %s\n', datestr(output.datetime, 31), output.status{:}, output.content{:})
+switch opt
+    case(0)
+        % 命令行显示当前日志记录
+        fprintf('%s | %s %s\n', datestr(output.datetime, 31), output.status{:}, output.content{:})
+    case(1)
+end
 % 转换日志记录为表并添加到全局表变量TE_LogData
 if exist('TE_LogData', 'var') == 1
     TE_LogData = [TE_LogData; output];
