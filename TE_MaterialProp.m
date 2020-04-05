@@ -37,7 +37,7 @@ results = zeros(0,3);
 % parameters of property calculation,
 switch opt
     case(0)
-        % ref. to eqs.(8)-(1) in [1]
+        % ref. to eqs.(8)-(10) in [1]
         params = [2.2224e-5,  9.306e-7, -9.905e-10; ...
                    5.112e-7,  1.634e-8,  6.279e-11; ...
                    6.2605  , -2.777e-2,  4.131e-5 ];
