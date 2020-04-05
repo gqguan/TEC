@@ -2,6 +2,10 @@
 %
 % by Dr. GUAN Guoqiang @ SCUT on 2020-03-27
 %
+%  References
+%  [1] Xuan X C, et al. Cryogenics, 2002, 42: 273-278.
+%  [2] Huang B J, et al. International Journal of Refrigeration 2000, 23(3): 208-218.
+%
 %% 初始化
 clear;
 % 数据结构定义
@@ -15,18 +19,28 @@ TEC = struct('NumTC', 190, 'NumRatio', 0.9, 'GeomFactor', 0.7e-3, ...
 TE_ImportExpData
 %
 %% 优化
-% 参数初值
-x0 = [TEC.NumRatio,TEC.GeomFactor];
-x1 = [1,1,1;1,1,1;1,1,1];
+% 命令行输入需要执行的优化方法
+opt = input(' 0 - Optimize (r g) values according to https://doi.org/10.1016/S0011-2275(02)00035-8\n 1 - Optimize (a R K) values according to https://doi.org/10.1016/S0140-7007(99)00046-8\n Input 0 or 1 to select corresponding method to get the TEC parameters: \n');
+% 设定优化向量的初值
+switch opt
+    case(0) % 优化r和g值，见参考文献[1]
+        x0 = [TEC.NumRatio,TEC.GeomFactor]; 
+    case(1) % 优化(a R K)值，见参考文献[2]
+        opt2a = input('Input polynomial order to correlate the (a R K) values');
+        x0 = ones(3, opt2a+1);
+    otherwise
+        fprintf('[ERROR] Unknown running mode of %d\n', opt)
+        return
+end
 % 定义优化参数
 options = optimset('PlotFcns', @optimplotfval);
 % 定义目标函数
-f0 = @(x)(TE_RMSE(x, TEC, ExpData, 0));
-f1 = @(x)(TE_RMSE(x, TEC, ExpData, 1));
+fun = @(x)(TE_RMSE(x, TEC, ExpData, opt));
 % 获得优化参数
-x = fminsearch(f1, x1, options);
+x = fminsearch(fun, x0, options);
+%
 %% 输出结果
-[~,output] = f1(x);
+[~,output] = fun(x);
 % 输入TEC部件号
 output.pid = input('Input TEC part no.: ', 's');
 % 构造表
