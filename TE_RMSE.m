@@ -1,4 +1,4 @@
-function [ RMSE output ] = TE_RMSE( x, TEC, ExpData, opt )
+function [ RMSE, output ] = TE_RMSE( x, TEC, ExpData, opt )
 %% calculate the RMSE between predicted and experimental results
 %  notes of I/O arguments
 %  x       - (i double array) [NumRatio GeomFactor] of thermocouples
@@ -49,9 +49,7 @@ switch opt
             return
         end
         % reset TEC parameters
-        TEC.SeebeckCoefficient = x(1);
-        TEC.ElecConductance = x(2);
-        TEC.ThermConductance = x(3);
+        TEC.Parameters = x;
 end
 %
 % 计算理论吸、放热量
@@ -60,7 +58,7 @@ for i = 1: NumExpData
     % TEC冷热侧温度
     TC = ExpData.TC(i)+273.15; TH = ExpData.TH(i)+273.15;
     % 计算电流上下边界
-    IBound = TE_Current(TH, TH, TEC); % 冷侧温度与热侧相同
+    IBound = TE_Current(TH, TH, TEC, opt); % 冷侧温度与热侧相同
     IMax = max(IBound);
     IMin = min(IBound);
     % 判定实验测得电流是否在理论范围

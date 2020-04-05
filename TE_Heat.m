@@ -82,6 +82,7 @@ switch opt
             Tc = Tc-273.15;
         end
         % TEC性能参数
+        TEC = TE_MaterialProp((Th+Tc)/2, TEC, opt);
         a = TEC.SeebeckCoefficient;
         R = TEC.ElecConductance;
         K = TEC.ThermConductance;

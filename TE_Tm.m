@@ -22,7 +22,10 @@ function [Tm, TEC] = TE_Tm(Th, Tc, I, TEC)
 % initialize
 syms Tm;
 % use temperature-independant properties at T = (Th+Tc)/2
-[a, R, K] = TE_MaterialProp((Th+Tc)/2, TEC.GeomFactor);
+TEC = TE_MaterialProp((Th+Tc)/2, TEC);
+a = TEC.SeebeckCoefficient;
+R = TEC.ElecConductance;
+K = TEC.ThermConductance;
 a1 = a; a2 = a; R1 = R; R2 = R; K1 = K; K2 = K;
 r = TEC.NumRatio;
 % calculate the thermocouple number in the first stage of 2-stage TEC
