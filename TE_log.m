@@ -25,7 +25,7 @@ switch nargin
         opt = 0;
     case(3)
         if opt ~= 0 && opt ~= 1
-            TE_log('Unknown input argument in TE_log()');
+            TE_log('Unknown input argument in TE_log()', 1);
             return
         end
 end

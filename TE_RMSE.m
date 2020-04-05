@@ -26,7 +26,8 @@ switch nargin
         opt = 0;
     case(4)
         if opt ~= 0 && opt ~= 1
-            fprintf('[ERROR] Unknown specified running mode of %d for TE_RMSE()\n', opt)
+            prompt = sprintf('Unknown specified running mode of %d for TE_RMSE()', opt);
+            TE_log(prompt, 1);
             return
         end
 end
@@ -45,7 +46,8 @@ switch opt
         end
     case(1) % TEC参数为定值
         if length(x) ~= 3
-            fprintf('[ERROR] Incorrect Length(x) = %d\n', length(x))
+            prompt = sprintf('Incorrect Length(x) = %d', length(x));
+            TE_log(prompt, 1);
             return
         end
         % reset TEC parameters
@@ -63,8 +65,8 @@ for i = 1: NumExpData
     IMin = min(IBound);
     % 判定实验测得电流是否在理论范围
     if (ExpData.I(i) > IMax || ExpData.I(i) < IMin)
-        fprintf('Given current %5.3f is out of range [%5.3f %5.3f]!\n', ...
-                ExpData.I(i), IMin, IMax);
+        prompt = sprintf('Given current %5.3f is out of range [%5.3f %5.3f]', ExpData.I(i), IMin, IMax);
+        TE_log(prompt, 1);
         output = [];
         RMSE = [];
         return;

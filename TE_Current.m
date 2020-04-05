@@ -36,7 +36,8 @@ switch nargin
         opt = 0;
     case(4)
         if opt ~= 0 && opt ~= 1
-            fprintf('[ERROR] Unknown specified running mode of %d for TE_Current()\n', opt)
+            prompt = sprintf('Unknown specified running mode of %d for TE_Current()', opt);
+            TE_log(prompt, 1);
             return
         end
 end
@@ -75,8 +76,6 @@ switch TECStage
         Ival = TE_Complex2Real(vpa(sol.I), 1e-6);
         Tval = TE_Complex2Real(vpa(sol.Tm), 1e-6);
         Tval = Tval(Tval>Tc & Tval<Th);
-    otherwise
-        fprintf('[ERROR] Invalid input argument!\n');
 end
 %
 end

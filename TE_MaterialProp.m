@@ -29,7 +29,8 @@ switch nargin
         opt = 0;
     case(3)
         if opt ~= 0 && opt ~= 1
-            fprintf('[ERROR] Unknown specified running mode of %d for TE_MaterialProp()\n', opt)
+            prompt = sprintf('Unknown specified running mode of %d for TE_MaterialProp()', opt);
+            TE_log(prompt, 1);
             return
         end
 end
