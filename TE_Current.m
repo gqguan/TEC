@@ -48,6 +48,7 @@ if TEC.NumRatio == 0
 else
     TECStage = 2;
 end
+Ival = zeros(1,2); Tval = zeros(1,2);
 % use temperature-independant properties at T = (Th+Tc)/2
 TEC = TE_MaterialProp((Th+Tc)/2, TEC, opt);
 a = TEC.SeebeckCoefficient;
@@ -65,10 +66,11 @@ switch TECStage
                 (Tc*a + (Tc^2*a^2 + 2*K*R*Tc - 2*K*R*Th)^(1/2))/R];
         Tval = 0;
     case 2
-        syms I Tm;
         a1 = a; a2 = a; R1 = R; R2 = R; K1 = K; K2 = K;
         r = TEC.NumRatio;
         Qc = 0;
+        % 以下为符号解计算I和Tm
+        syms I Tm;
         eq3 = (I*a1*Tm-I^2*R1/2-K1*(Th-Tm))*r == ...
               I*a2*Tm+I^2*R2/2-K2*(Tm-Tc);
         eq4 = Qc == (I*a2*Tc-I^2*R2/2-K2*(Tm-Tc))*N0;
@@ -76,6 +78,48 @@ switch TECStage
         Ival = TE_Complex2Real(vpa(sol.I), 1e-6);
         Tval = TE_Complex2Real(vpa(sol.Tm), 1e-6);
         Tval = Tval(Tval>Tc & Tval<Th);
+%         % 直接迭代求Tm (开发中尚未完成）
+%         % 设定Tm的范围：下限为Tc，上限为使I方程解为实数
+%         Tm_bnd = [Tc,(Tc^2*a2^2 + 2*K2*R2*Tc)/(2*K2*R2)];
+%         % 求I值(小值）
+%         iter_op = 1;
+%         Tm = mean(Tm_bnd);
+%         while iter_op
+%             I = (Tc*a2 - (Tc^2*a2^2 + 2*K2*R2*Tc - 2*K2*R2*Tm)^(1/2))/R2;
+%             % 计算新Tm
+%             Tm_new = ((I^2*R2)/2 + r*((R1*I^2)/2 + K1*Th) + K2*Tc)/(K2 - I*a2 + r*(K1 + I*a1));
+%             if Tm_new < Tm_bnd(1) || Tm_new > Tm_bnd(2)
+%                 TE_log('Tm is out of the range keeping I real in TE_Current()', 1)
+%                 return
+%             end
+%             if abs(Tm_new-Tm)/Tm > 1e-5
+%                 iter_op = 1;
+%                 Tm = Tm_new;
+%             else
+%                 iter_op = 0;
+%             end
+%         end
+%         Ival(1) = I;
+%         Tval(1) = Tm;
+%         % 求I值(大值）        
+%         iter_op = 1;
+%         Tm = mean(Tm_bnd);
+%         while iter_op
+%             I = (Tc*a2 + (Tc^2*a2^2 + 2*K2*R2*Tc - 2*K2*R2*Tm)^(1/2))/R2;
+%             Tm_new = ((I^2*R2)/2 + r*((R1*I^2)/2 + K1*Th) + K2*Tc)/(K2 - I*a2 + r*(K1 + I*a1));
+%             if Tm_new < Tm_bnd(1) || Tm_new > Tm_bnd(2)
+%                 TE_log('Tm is out of the range keeping I real in TE_Current()', 1)
+%                 return
+%             end
+%             if abs(Tm_new-Tm)/Tm > 1e-5
+%                 iter_op = 1;
+%                 Tm = Tm_new;
+%             else
+%                 iter_op = 0;
+%             end
+%         end
+%         Ival(2) = I;
+%         Tval(2) = Tm;        
 end
 %
 end
