@@ -31,8 +31,9 @@ r = TEC.NumRatio;
 % calculate the thermocouple number in the first stage of 2-stage TEC
 N0 = TEC.NumTC/(TEC.NumRatio+1);
 % solve eq.(3)
-eq3 = (I*a1*Tm-I^2*R1/2-K1*(Th-Tm))*r == I*a2*Tm+I^2*R2/2-K2*(Tm-Tc);
-Tm = double(solve(eq3, Tm));
+% eq3 = (I*a1*Tm-I^2*R1/2-K1*(Th-Tm))*r == I*a2*Tm+I^2*R2/2-K2*(Tm-Tc);
+% Tm = double(solve(eq3, Tm));
+Tm = ((I^2*R2)/2 + r*((R1*I^2)/2 + K1*Th) + K2*Tc)/(K2 - I*a2 + r*(K1 + I*a1));
 % % calculate a1 R1 K1
 % [a1, R1, K1] = TE_MaterialProp((Th+Tm)/2, TEC.GeomFactor);
 % % calculate a2 R2 K2
