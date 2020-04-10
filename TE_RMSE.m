@@ -87,9 +87,11 @@ tabout = [tabout,table(ExpData.QC, 'VariableNames', {'QC_EXP'})];
 tabout = [tabout,table(QH, 'VariableNames', {'QH_SIM'})];
 tabout = [tabout,table(QC, 'VariableNames', {'QC_SIM'})];
 output.results = tabout;
+RMSE = sqrt(sum(((tabout.QH_EXP-tabout.QH_SIM)./tabout.QH_EXP).^2 + ...
+                ((tabout.QC_EXP-tabout.QC_SIM)./tabout.QC_EXP).^2));
 % COP_exp = ExpData.QC./(ExpData.QH-ExpData.QC);
-RMSE = MVA_diff(ExpData.QH, QH, 'RMSE')/mean(ExpData.QH) ...
-      +MVA_diff(ExpData.QC, QC, 'RMSE')/mean(ExpData.QC);
+% RMSE = MVA_diff(ExpData.QH, QH, 'RMSE')/mean(ExpData.QH) ...
+%       +MVA_diff(ExpData.QC, QC, 'RMSE')/mean(ExpData.QC);
 % RMSE = MVA_diff(ExpData.QH, QH, 'RMSE');
 %
 end
