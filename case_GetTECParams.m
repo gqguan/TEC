@@ -9,8 +9,8 @@
 %% 初始化
 clear;
 % 数据结构定义
-TEC = struct('NumTC', 190, 'NumRatio', 0.9, 'GeomFactor', 0.7e-3, ...
-             'HTCoefficient', 270, 'HTArea', 0.0016, ...
+TEC = struct('NumTC', 190, 'NumRatio', 7/12, 'GeomFactor', 2.6e-3, ...
+             'HTCoefficient', 270, 'HTArea', 40*40e-6, ...
              'SeebeckCoefficient', [], 'ElecConductance', [], ...
              'ThermConductance', [], 'Voltage', [], 'Current', [], ...
              'Parameters', []);
@@ -24,18 +24,14 @@ opt = input(' 0 - Optimize (r g) values according to https://doi.org/10.1016/S00
 % 设定优化向量的初值
 switch opt
     case(0) % 优化r和g值，见参考文献[1]
-        opt1a = input('Input type of TEC (1) one-stage or (2) two-stage: ');
-        switch opt1a
-            case(1)
-                TE_log('Given TEC type is one stage');
-                TEC.NumRatio = 0;
-                x0 = TEC.GeomFactor;
-            case(2)
-                TE_log('Given TEC type is two stages');
-                x0 = [TEC.NumRatio,TEC.GeomFactor];
-            otherwise
-                TE_log('Given TEC type is unknown', 1);
-                return
+        TE_log('Getting TEC type according to TEC.NumRatio');
+        if TEC.NumRatio == 0
+            TE_log('Given TEC type is one stage');
+            TEC.NumRatio = 0;
+            x0 = TEC.GeomFactor;
+        else
+            TE_log('Given TEC type is two stages');
+            x0 = [TEC.NumRatio,TEC.GeomFactor];            
         end
     case(1) % 优化(a R K)值，见参考文献[2]
         opt2a = input('Input polynomial order to correlate the (a R K) values: ');
