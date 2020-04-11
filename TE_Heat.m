@@ -86,13 +86,6 @@ switch opt
 %                 Q(1) = (I*a*Th+I^2*R/2-K*(Th-Tm))*n;
         end
      case(1)
-        % 输入温度应为摄氏度，当输入温度大于200时识别为绝对温度
-        if Th > 200
-            Th = Th-273.15;
-        end
-        if Tc > 100
-            Tc = Tc-273.15;
-        end
         % TEC性能参数
         TEC = TE_MaterialProp((Th+Tc)/2, TEC, opt);
         a = TEC.SeebeckCoefficient;
