@@ -39,22 +39,28 @@ results = zeros(0,3);
 switch opt
     case(0)
         % ref. to eqs.(8)-(10) in [1]
-        params = [2.2224e-5,  9.306e-7, -9.905e-10; ...
-                   5.112e-7,  1.634e-8,  6.279e-11; ...
-                   6.2605  , -2.777e-2,  4.131e-5 ];
-        % temperature array
-        Ts = [1, T_avg, T_avg^2];               
+        if isempty(TEC.Parameters) == 1
+            params = [2.2224e-5,  9.306e-7, -9.905e-10; ...
+                       5.112e-7,  1.634e-8,  6.279e-11; ...
+                       6.2605  , -2.777e-2,  4.131e-5 ];
+        else
+            if size(TEC.Parameters, 1) == 3
+                params = TEC.Parameters;
+            else
+                TE_Log('Incorrect size of TEC.Parameters', 1)
+                return
+            end
+        end             
     case(1)
         % 获取计算a R K的参数
         params = TEC.Parameters;
         TEC.NumRatio = 0; % 将r值设定为0，即按单层TEC结构计算
-        % 按计算参数设定温度向量
-        Ts = zeros(1, size(params, 2));
-        for i = 1:size(params, 2)
-            Ts(i) = 1*T_avg^(i-1);
-        end
 end
-
+% 按计算参数设定温度向量
+Ts = zeros(1, size(params, 2));
+for i = 1:size(params, 2)
+    Ts(i) = 1*T_avg^(i-1);
+end
 % calculate the properties of thermocouple
 for i = 1:size(params, 1)
     results(i) = dot(params(i,:), Ts); % results = [alpha rho kappa]
