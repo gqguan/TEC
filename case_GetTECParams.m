@@ -43,7 +43,7 @@ switch opt
         return
 end
 % 定义优化参数
-options = optimset('PlotFcns', @optimplotfval);
+options = optimset('PlotFcns', @optimplotfval, 'MaxFunEvals', 1000*length(x0));
 % 定义目标函数
 fun = @(x)(TE_RMSE(x, TEC, ExpData, opt));
 % 获得优化参数
