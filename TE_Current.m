@@ -1,5 +1,9 @@
 function [Ival, Tval] = TE_Current(Th, Tc, TEC, opt)
-%% Calculate current according hot- and cold-side temperatures
+%% 求使TEC冷侧吸热量为零的电流及中间层温度（对双层结构的TEC）
+%
+%  功能说明
+%  * 能根据输入TEC参数自动判定是单层还是双层结构的TEC
+%   
 %  notes of I/O arguments
 %  Th  - (i double scalar) hot-side temperature [K]
 %  Tc  - (i double scalar) cold-side temperature [K]
@@ -13,9 +17,7 @@ function [Ival, Tval] = TE_Current(Th, Tc, TEC, opt)
 %        SeebeckCoefficient: Seebeck coefficient of 1 and 2 stage of TEC
 %        ElecConductance   : electrical conductance of 1 and 2 stage of TEC
 %        ThermConductance  : thermal conductance of 1 and 2 stage of TEC
-%  opt - (i integer scalar) optional running mode
-%                           = 0 (default) 采用参考文献[1]的方法计算TEC性能参数
-%                           = 1 采用参考文献[2]的方法计算TEC性能参数
+%  opt - (i integer scalar) optional running mode （预留功能）
 %  Ival- (o double array(2) for opt = 0) currents in one-stage TEC [A]
 %        (o double array for opt = 1) currents in two-stage TEC [A]
 %  Tval- (o double scalar for opt = 0) junction temperature [K]
@@ -41,6 +43,7 @@ switch nargin
             return
         end
 end
+% 自动根据TEC.NumRatio值判定TEC结构是单层还是双层
 %  TECStage = 1: currents of one-stage TEC to make Qc = 0
 %             2: currents of two-stage TEC to make Qc = 0
 if TEC.NumRatio == 0
@@ -59,67 +62,43 @@ N0 = TEC.NumTC/(TEC.NumRatio+1);
 %
 switch TECStage
     case 1
-        syms I;
+%         syms I;
 %         eq12 = 0 == I*a*Tc-I^2*R/2-K*(Th-Tc);
 %         Ival = eval(solve(eq12, I));
         Ival = [(Tc*a - (Tc^2*a^2 + 2*K*R*Tc - 2*K*R*Th)^(1/2))/R, ...
                 (Tc*a + (Tc^2*a^2 + 2*K*R*Tc - 2*K*R*Th)^(1/2))/R];
         Tval = 0;
     case 2
-        a1 = a; a2 = a; R1 = R; R2 = R; K1 = K; K2 = K;
-        r = TEC.NumRatio;
-        Qc = 0;
-        % 以下为符号解计算I和Tm
-        syms I Tm;
-        eq3 = (I*a1*Tm-I^2*R1/2-K1*(Th-Tm))*r == ...
-              I*a2*Tm+I^2*R2/2-K2*(Tm-Tc);
-        eq4 = Qc == (I*a2*Tc-I^2*R2/2-K2*(Tm-Tc))*N0;
-        sol = solve([eq3,eq4], [I,Tm]);
-        Ival = TE_Complex2Real(vpa(sol.I), 1e-6);
-        Tval = TE_Complex2Real(vpa(sol.Tm), 1e-6);
-        Tval = Tval(Tval>Tc & Tval<Th);
-%         % 直接迭代求Tm (开发中尚未完成）
-%         % 设定Tm的范围：下限为Tc，上限为使I方程解为实数
-%         Tm_bnd = [Tc,(Tc^2*a2^2 + 2*K2*R2*Tc)/(2*K2*R2)];
-%         % 求I值(小值）
-%         iter_op = 1;
-%         Tm = mean(Tm_bnd);
-%         while iter_op
-%             I = (Tc*a2 - (Tc^2*a2^2 + 2*K2*R2*Tc - 2*K2*R2*Tm)^(1/2))/R2;
-%             % 计算新Tm
-%             Tm_new = ((I^2*R2)/2 + r*((R1*I^2)/2 + K1*Th) + K2*Tc)/(K2 - I*a2 + r*(K1 + I*a1));
-%             if Tm_new < Tm_bnd(1) || Tm_new > Tm_bnd(2)
-%                 TE_log('Tm is out of the range keeping I real in TE_Current()', 1)
-%                 return
-%             end
-%             if abs(Tm_new-Tm)/Tm > 1e-5
-%                 iter_op = 1;
-%                 Tm = Tm_new;
-%             else
-%                 iter_op = 0;
-%             end
-%         end
-%         Ival(1) = I;
-%         Tval(1) = Tm;
-%         % 求I值(大值）        
-%         iter_op = 1;
-%         Tm = mean(Tm_bnd);
-%         while iter_op
-%             I = (Tc*a2 + (Tc^2*a2^2 + 2*K2*R2*Tc - 2*K2*R2*Tm)^(1/2))/R2;
-%             Tm_new = ((I^2*R2)/2 + r*((R1*I^2)/2 + K1*Th) + K2*Tc)/(K2 - I*a2 + r*(K1 + I*a1));
-%             if Tm_new < Tm_bnd(1) || Tm_new > Tm_bnd(2)
-%                 TE_log('Tm is out of the range keeping I real in TE_Current()', 1)
-%                 return
-%             end
-%             if abs(Tm_new-Tm)/Tm > 1e-5
-%                 iter_op = 1;
-%                 Tm = Tm_new;
-%             else
-%                 iter_op = 0;
-%             end
-%         end
-%         Ival(2) = I;
-%         Tval(2) = Tm;        
+        I0 = (Tc*a + (Tc^2*a^2 + 2*K*R*Tc - 2*K*R*Th)^(1/2))/R;
+        T0 = (Th+Tc)/2;
+        x0 = [I0,T0];
+        x = zeros(size(x0));
+        sol = fsolve(@(x)(solve_I_Tm(x, Th, Tc, TEC)), x0);
+        Ival = sol(1);
+        Tval = sol(2);
+%         a1 = a; a2 = a; R1 = R; R2 = R; K1 = K; K2 = K;
+%         r = TEC.NumRatio;
+%         Qc = 0;
+%         % 以下为符号解计算I和Tm
+%         syms I Tm;
+%         eq3 = (I*a1*Tm-I^2*R1/2-K1*(Th-Tm))*r == ...
+%               I*a2*Tm+I^2*R2/2-K2*(Tm-Tc);
+%         eq4 = Qc == (I*a2*Tc-I^2*R2/2-K2*(Tm-Tc))*N0;
+%         sol = solve([eq3,eq4], [I,Tm]);
+%         Ival = TE_Complex2Real(vpa(sol.I), 1e-6);
+%         Tval = TE_Complex2Real(vpa(sol.Tm), 1e-6);
+%         Tval = Tval(Tval>Tc & Tval<Th);
 end
 %
+end
+
+%% 求使双层TEC冷侧吸热量为零的电流及中间温度
+function F = solve_I_Tm(x, Th, Tc, TEC)
+    I = x(1); Tm = x(2);
+    N1 = TEC.NumTC*(TEC.NumRatio/(TEC.NumRatio+1)); 
+    N2 = TEC.NumTC-N1;
+    TEC.Current = I;
+    F(1) = TE_Heat1Stage([Th,Tm], TEC, "cold")*N1 ... % 第1层（高温放热层）冷侧吸热量
+           -TE_Heat1Stage([Tm,Tc], TEC, "hot")*N2;    % 第2层（低温吸热层）热侧放热量
+    F(2) = TE_Heat1Stage([Tm,Tc], TEC, "cold")*N2;    % 第2层（低温吸热层）冷侧吸热量
 end
