@@ -59,18 +59,18 @@ NumExpData = height(ExpData);
 for i = 1: NumExpData
     % TEC冷热侧温度
     TC = ExpData.TC(i)+273.15; TH = ExpData.TH(i)+273.15;
-    % 计算电流上下边界
-    IBound = TE_Current(TH, TH, TEC, opt); % 冷侧温度与热侧相同
-    IMax = max(IBound);
-    IMin = min(IBound);
-    % 判定实验测得电流是否在理论范围
-    if (ExpData.I(i) > IMax || ExpData.I(i) < IMin)
-        prompt = sprintf('Given current %5.3f is out of range [%5.3f %5.3f]', ExpData.I(i), IMin, IMax);
-        TE_log(prompt, 1);
-        output = [];
-        RMSE = [];
-        return;
-    end
+%     % 计算电流上下边界
+%     IBound = TE_Current(TH, TH, TEC, opt); % 冷侧温度与热侧相同
+%     IMax = max(IBound);
+%     IMin = min(IBound);
+%     % 判定实验测得电流是否在理论范围
+%     if (ExpData.I(i) > IMax || ExpData.I(i) < IMin)
+%         prompt = sprintf('Given current %5.3f is out of range [%5.3f %5.3f]', ExpData.I(i), IMin, IMax);
+%         TE_log(prompt, 1);
+%         output = [];
+%         RMSE = [];
+%         return;
+%     end
     % 输入实验时TEC的电压和电流
     TEC.Voltage = ExpData.U(i);
     TEC.Current = ExpData.I(i);
