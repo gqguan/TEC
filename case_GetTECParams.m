@@ -20,7 +20,7 @@ TE_ImportExpData
 %
 %% 优化
 % 命令行输入需要执行的优化方法
-opt = input(' 0 - Optimize (r g) values according to https://doi.org/10.1016/S0011-2275(02)00035-8\n 1 - Optimize (a R K) values according to https://doi.org/10.1016/S0140-7007(99)00046-8\n Input 0 or 1 to select corresponding method to get the TEC parameters: ');
+opt = input(' 0 - Optimize (r g K) values according to https://doi.org/10.1016/S0011-2275(02)00035-8\n 1 - Optimize (a R K) values according to https://doi.org/10.1016/S0140-7007(99)00046-8\n Input 0 or 1 to select corresponding method to get the TEC parameters: ');
 % 设定优化向量的初值
 switch opt
     case(0) % 优化r和g值，见参考文献[1]
@@ -31,7 +31,7 @@ switch opt
             x0 = TEC.GeomFactor;
         else
             TE_log('Given TEC type is two stages');
-            x0 = [TEC.NumRatio,TEC.GeomFactor];            
+            x0 = [TEC.NumRatio,TEC.GeomFactor,TEC.HTCoefficient];            
         end
     case(1) % 优化(a R K)值，见参考文献[2]
         opt2a = input('Input polynomial order to correlate the (a R K) values: ');

@@ -38,11 +38,15 @@ switch opt
     case(0)
         % reset TEC according to the given x
         switch length(x)
-            case 1 % x = GeomFactor
+            case(1) % x = GeomFactor
                 TEC.GeomFactor = x;
-            case 2 % x = [NumRatio GeomFactor]
+            case(2) % x = [NumRatio GeomFactor]
                 TEC.NumRatio   = x(1);
                 TEC.GeomFactor = x(2);
+            case(3)
+                TEC.NumRatio   = x(1);
+                TEC.GeomFactor = x(2);
+                TEC.HTCoefficient = x(3);
         end
     case(1) % TEC参数为定值
         if length(x) ~= 3
