@@ -63,10 +63,11 @@ Membranes(1:NumStage) = MembrProps;
 %     .ThermConductance  : thermal conductance of 1 and 2 stage of TEC
 %     .Voltage           : electrical voltage [V]
 %     .Current           : electrical current [A]
-TEC = struct('NumTC', 190, 'NumRatio', 0, 'GeomFactor', 3.8e-4, ...
-             'HTCoefficient', 270, 'HTArea', 0.0016, ...
+TEC = struct('NumTC', 190, 'NumRatio', 7/12, 'GeomFactor', 2.6e-3, ...
+             'HTCoefficient', 270, 'HTArea', 40*40e-6, ...
              'SeebeckCoefficient', [], 'ElecConductance', [], ...
-             'ThermConductance', [], 'Voltage', 12, 'Current', 0.8);
+             'ThermConductance', [], 'Voltage', 12, 'Current', 0.8, ...
+             'Parameters', []);
 % set properties for all TECs
 TECs(1:(NumStage+1)) = TEC;
 % set the initial temperatures for all stages
@@ -91,6 +92,7 @@ SEC = sum(EC)/WP_Sum;
 COP_H = Q(:,1)./EC; % heating COPs of TEHP
 COP_C = Q(:,2)./EC; % refrigrating COPs of TEHP
 %% Output results
+format short g
 fprintf('Specific energy consumption of %d-stage DCMD is %.4e W/kg.\n', NumStage, SEC);
 % Performances of membrane separation in each stage
 StageNames = cell(NumStage,1);
@@ -109,7 +111,8 @@ TMC = TOut(4,:)';
 TC  = TOut(5,:)';
 TSC = TOut(6,:)';
 Output_Stages = table(TSH, TH, TMH, TMC, TC, TSC, JH, JM, ...
-                      'RowNames', StageNames)
+                      'RowNames', StageNames);
+disp(Output_Stages)
 % Performances of TEHPs
 TECNames = cell(NumStage+1,1);
 for i = 1:(NumStage+1)
@@ -122,4 +125,5 @@ TS_Colds(2:NumStage+1,1) = TOut(6,:)';
 Q1 = Q(:,1);
 Q2 = Q(:,2);
 Output_TEHP = table(COP_H, COP_C, TS_Hots, TS_Colds, Q1, Q2, EC, ...
-                    'RowNames', TECNames)
+                    'RowNames', TECNames);
+disp(Output_TEHP)
