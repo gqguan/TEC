@@ -3,86 +3,49 @@
 %
 %  by Dr. GUAN, Guoqiang @ SCUT on 2019-08-30
 %
+
 %% Initialize
-clear;
+% 调用公用变量定义，其中包括DuctGeom（流道几何尺寸）、Stream（物料定义）、MembrProps（膜材料性质）
+CommonDef
+% 设定集成TEC多级DCMD系统的级数
 NumStage = 2;
-W1 = 0.015; W2 = 0.015;
+% 设定膜组件的热、冷侧进口温度
 T1 = 323.15; T2 = 303.15;
-%  DuctGeom - geometric parameters of flowing channel in MD module
-%           .Length (real array(2)) length along the flowing direction in 
-%                                   both sides of MD module [m]
-%           .Height (real array(2)) height of rectanglarly wetted perimeter
-%                                   in both sides of MD module [m]
-%           .Width (real array(2))  width of rectanglarly wetted perimeter
-%                                   in both sides of MD module [m]
-DuctGeom = struct('Length', 0.04,  ...
-                 'Height', 0.006, ...
-                 'Width',  0.04 );
-% initial properties of feed-side influent
-SInFeed = struct('Temp', T1,     ...
-                 'MassFlow', W1,  ...
-                 'MassFraction', 0,  ...
-                 'Density', 1e3,     ...
-                 'Viscosity', 1e-3,  ...
-                 'SpecHeat', 4.18e3, ...
-                 'ThermCond', 0.6);
+% 膜组件热侧进料初始化
+SInFeed = Stream;
+SInFeed.Temp = T1;
+SInFeed.MassFlow = 0.015;
 % calculate the rest properties of feed-side influent
 SInFeed = DCMD_PackStream(SInFeed);
-% get all feed-side influents for each stages
+% 设定各级膜组件热侧进料
 SInFeeds(1:NumStage) = SInFeed;
-% initial properties of permeate-side influent
-SInPerm = struct('Temp', T2,         ...
-                 'MassFlow', W2,     ...
-                 'MassFraction', 0,  ...
-                 'Density', 1e3,     ...
-                 'Viscosity', 1e-3,  ...
-                 'SpecHeat', 4.18e3, ...
-                 'ThermCond', 0.6);
+% 膜组件冷侧进料初始化
+SInPerm = Stream;
+SInPerm.Temp = T2;
+SInPerm.MassFlow = 0.015;
 % calculate the rest properties of permeate-side influent
 SInPerm = DCMD_PackStream(SInPerm);
-% get all permeate-side influents for each stage
+% 设定各级膜组件冷侧进料
 SInPerms(1:NumStage) = SInPerm;
-%  MembrProps.TMH: hot-side temperature of membrane [K]
-%            .TMC: cold-side temperature of membrane [K]
-%            .Area: effective area of membrane [m2]
-%            .Thickness: thickness of membrane [m]
-%            .MDCoefficient: MD coefficient [kg/s-m2-Pa]
-%            .ThermConductivity: thermal conductivity of membrane
-MembrProps = struct('TMH', [], 'TMC', [], 'Area', 0.0016, ...
-                    'Thickness', 1.5e-4, 'MDCoefficient', 3.2e-7, ...
-                    'ThermConductivity', (0.18*0.3+0.025*0.7));
+% 设定各级膜材料特性
 Membranes(1:NumStage) = MembrProps;
-%  TEC.NumTC     : Number of thermocouples in TEC
-%     .NumRatio  : ratio of thermocouples in the 1-stage TEC to those in
-%                  the 2-stage TEC
-%     .GeomFactor: geometry factor of thermcouples in TEC [m]
-%     .HTCoefficient     : Overall heat transfer coefficient [W/m2-K]
-%     .HTArea            : heat transfer area [m2]
-%     .SeebeckCoefficient: Seebeck coefficient of 1 and 2 stage of TEC
-%     .ElecConductance   : electrical conductance of 1 and 2 stage of TEC
-%     .ThermConductance  : thermal conductance of 1 and 2 stage of TEC
-%     .Voltage           : electrical voltage [V]
-%     .Current           : electrical current [A]
-% TEC = struct('NumTC', 190, 'NumRatio', 7/12, 'GeomFactor', 2.6e-3, ...
-%              'HTCoefficient', 270, 'HTArea', 40*40e-6, ...
-%              'SeebeckCoefficient', [], 'ElecConductance', [], ...
-%              'ThermConductance', [], 'Voltage', 12, 'Current', 0.8, ...
-%              'Parameters', []);
 % set properties for all TECs
 load('TEC_Params.mat') % 载入已有的TEC计算参数
 TECs(1:(NumStage+1)) = TEC_Params.TEC(3,1); % 注意按opt=0计算TEC的吸放热量
-% set the initial temperatures for all stages
+% 设定各级膜组件中的内部温度分布（热侧TEC壁面温度、热侧主体温度、热侧膜面温度、冷侧膜面温度、冷侧主体温度、冷侧TEC壁面温度）
 for i=1:NumStage
     T0((1+(i-1)*6):6*i) = [T1+1; T1; T1-1; T2+1; T2; T2-1];
 end
 % set room temperature as the environmental temperature of both heat source
 % and sink
 TEXs = [298.15; 298.15];
+
 %% Solve temperatures
 opts = optimoptions('fsolve', 'Display', 'Iter', 'MaxFunEvals', 15000, 'MaxIter', 1000);
 fun = @(T)DCMD_EqSys(T, TEXs, TECs, SInFeeds, SInPerms, Membranes);
 [T, fvals, exitflag] = fsolve(fun, T0, opts);
 [~, Q, QM, SM, SOutFeeds, SOutPerms] = fun(T);
+
 %% Calculate the energy efficiency
 % Energy consumption of TECs
 EC = Q(:,1)-Q(:,2);
@@ -92,6 +55,7 @@ SEC = sum(EC)/WP_Sum;
 % Coefficient of performance
 COP_H = Q(:,1)./EC; % heating COPs of TEHP
 COP_C = Q(:,2)./EC; % refrigrating COPs of TEHP
+
 %% Output results
 format short g
 fprintf('Specific energy consumption of %d-stage DCMD is %.4e W/kg.\n', NumStage, SEC);
