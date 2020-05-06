@@ -4,7 +4,6 @@
 %
 
 %%
-clear
 % 定义模组件流道几何尺寸
 %  DuctGeom - geometric parameters of flowing channel in MD module
 %           .Length (real array(2)) length along the flowing direction in 
