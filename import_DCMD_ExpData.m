@@ -9,7 +9,7 @@
 % 由 MATLAB 自动生成于 2020/05/04 09:31:19
 
 %% 导入数据
-[~, ~, raw] = xlsread('C:\Users\gqgua\OneDrive\Documents\DCMD Experiments\exp_data\ExpData.xlsx','summary','A3:X24');
+[~, ~, raw] = xlsread('C:\Users\gqgua\OneDrive\Documents\DCMD Experiments\exp_data\ExpData.xlsx','summary','A3:X26');
 stringVectors = string(raw(:,[1,8,23,24]));
 stringVectors(ismissing(stringVectors)) = '';
 raw = raw(:,[2,3,4,5,6,7,9,10,11,12,13,14,15,16,17,18,19,20,21,22]);
