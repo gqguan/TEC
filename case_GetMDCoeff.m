@@ -41,7 +41,7 @@ ax1 = gca;
 ax1.XLim = [WP_min,WP_max];
 ax1.YLim = [WP_min,WP_max];
 xlabel('WP_exp')
-ylable('WP_sim')
+ylabel('WP_sim')
 
 function [y,tabout] = DCMD_RMSE(x, ExpData)
     % 载入数据结构
