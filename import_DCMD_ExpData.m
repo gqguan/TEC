@@ -1,15 +1,9 @@
-%% 导入电子表格中的数据
-% 用于从以下电子表格导入数据的脚本:
-%
-%    工作簿: C:\Users\gqgua\OneDrive\Documents\DCMD Experiments\exp_data\ExpData.xlsx
-%    工作表: summary
-%
-% 要扩展代码以供其他选定数据或其他电子表格使用，请生成函数来代替脚本。
-
-% 由 MATLAB 自动生成于 2020/05/04 09:31:19
+%% 从文件对话框选取导入的数据文件
+[File, PathName] = uigetfile('*.*', '选取DCMD实验结果ExpData.xlsx ...', 'Multiselect', 'off');
 
 %% 导入数据
-[~, ~, raw] = xlsread('C:\Users\gqgua\OneDrive\Documents\DCMD Experiments\exp_data\ExpData.xlsx','summary','A3:X26');
+filename = [PathName,File];
+[~, ~, raw] = xlsread(filename,'summary','A3:X26');
 stringVectors = string(raw(:,[1,8,23,24]));
 stringVectors(ismissing(stringVectors)) = '';
 raw = raw(:,[2,3,4,5,6,7,9,10,11,12,13,14,15,16,17,18,19,20,21,22]);
