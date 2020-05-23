@@ -1,3 +1,14 @@
+%% 从指定位置导入DCMD实验结果
+%
+% by Dr. Guan Guoqiang @ SCUT on 2020-05-24
+
+%% 检查工作区中是否存在实验数据变量ExpData
+if ~exist('ExpData', 'var') 
+    fprintf('Existed DCMD experimental data are used.\n')
+else
+    return
+end   
+
 %% 从文件对话框选取导入的数据文件
 [File, PathName] = uigetfile('*.*', '选取DCMD实验结果ExpData.xlsx ...', 'Multiselect', 'off');
 
@@ -40,5 +51,15 @@ ExpData_raw.VarName22 = data(:,20);
 ExpData_raw.wF_IN = categorical(stringVectors(:,3));
 ExpData_raw.Membrane = categorical(stringVectors(:,4));
 
+%% 整理原始实验数据
+ExpData = ExpData_raw(1:11,[9 10 11 12 13 15 17 19 21 23]);
+% 将实验数据中的温度单位转换为K
+ExpData.TF_IN = ExpData.TF_IN+273.15;
+ExpData.TP_IN = ExpData.TP_IN+273.15;
+ExpData.TF_OUT = ExpData.TF_OUT+273.15;
+ExpData.TP_OUT = ExpData.TP_OUT+273.15;
+% 将实验数据中的产水率单位转换为kg/s
+ExpData.WP = ExpData.WP/1000;
+    
 %% 清除临时变量
-clearvars data raw stringVectors;
+clearvars ExpData_raw data raw stringVectors;

@@ -14,16 +14,18 @@ clear
 x0 = 3.2e-7;
 
 %% 用实验数据回归计算膜蒸馏系数
+% 导入实验数据
+import_DCMD_ExpData
 % 定义求解器参数
 options = optimset('PlotFcns', @optimplotfval, 'MaxFunEvals', 1000*length(x0));
 % 定义目标函数
-fun = @(x)(DCMD_RMSE(x));
+fun = @(x)(DCMD_RMSE(x, ExpData));
 % 获得优化参数
 [x,fval,exitflag,optim_output] = fminsearch(fun, x0, options);
 
 %% Output results
 format short g
-[~,tabout] = DCMD_RMSE(x);
+[~,tabout] = DCMD_RMSE(x, ExpData);
 disp(tabout)
 fprintf('RMS of relative errors in TF, TP and WP are %f, %f and %f, respectively\n', ...
 rms((tabout.TF_OUT-tabout.TH)./tabout.TF_OUT), ...
@@ -38,19 +40,9 @@ ax1 = gca;
 ax1.XLim = [WP_min,WP_max];
 ax1.YLim = [WP_min,WP_max];
 
-function [y,tabout] = DCMD_RMSE(x)
+function [y,tabout] = DCMD_RMSE(x, ExpData)
     % 载入数据结构
     CommonDef
-    % 载入DCMD实验数据
-    import_DCMD_ExpData
-    ExpData = ExpData_raw(1:11,[9 10 11 12 13 15 17 19 21 23]);
-    % 将实验数据中的温度单位转换为K
-    ExpData.TF_IN = ExpData.TF_IN+273.15;
-    ExpData.TP_IN = ExpData.TP_IN+273.15;
-    ExpData.TF_OUT = ExpData.TF_OUT+273.15;
-    ExpData.TP_OUT = ExpData.TP_OUT+273.15;
-    % 将实验数据中的产水率单位转换为kg/s
-    ExpData.WP = ExpData.WP/1000;
     % 设定集成TEC多级DCMD系统的级数
     NumStage = 1;
     % set properties for all TECs
