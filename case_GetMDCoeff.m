@@ -24,6 +24,7 @@ fun = @(x)(DCMD_RMSE(x, ExpData));
 [x,fval,exitflag,optim_output] = fminsearch(fun, x0, options);
 
 %% Output results
+fprintf('Regressed MD coefficient is %.4e kg/m2-s-Pa\n', x)
 format short g
 [~,tabout] = DCMD_RMSE(x, ExpData);
 disp(tabout)
@@ -39,6 +40,8 @@ plot(tabout.WP, tabout.WP_Sim, 'o', [WP_min,WP_max], [WP_min,WP_max], '--r')
 ax1 = gca;
 ax1.XLim = [WP_min,WP_max];
 ax1.YLim = [WP_min,WP_max];
+xlabel('WP_exp')
+ylable('WP_sim')
 
 function [y,tabout] = DCMD_RMSE(x, ExpData)
     % 载入数据结构
