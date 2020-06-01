@@ -1,34 +1,41 @@
 %% 生成因素表
 %
 % 输入输出说明
-% FactorNames - (i, string array) 因数名称向量
-% LevelSets   - (i, double array) 各因素的水平值
-% FA_Tabout   - (o, table) 因素表
-% flag        - (o, integer) 函数运行结果状态，其中1为正常，0为异常
+% SettingTab - (i, table) 各因数的水平设置表
+% FA_Tabout  - (o, table) 因素表
 % 
-% by Dr. Guan Guoqiang @ SCUT @ 2020/5/31
+% by Dr. Guan Guoqiang @ SCUT @ 2020/6/1
 %
-function [FA_Tabout,flag] = FA_TabGenerator(FactorNames,LevelSets)
-%% 输入参数检查
-% 根据输入参数得因素表的因素数和水平数
-[NumFactor,NumLevel] = size(LevelSets);
-if NumFactor ~= length(FactorNames)
+function [FA_Tabout,flag] = FA_TabGenerator(SettingTab)
+%% 检查输入参数
+if size(SettingTab,1) ~= 1
     flag = 0;
-    prompt1 = sprintf('Unmatched sizes of input arguements');
+    prompt1 = sprintf('[ERROR] Input table must have one row only!');
     disp(prompt1)
     return
 end
 
-%% 按二水平全因素设计构造初始因素表
+%% 生成通用因素表
+% 获取表头
+FactorNames = SettingTab.Properties.VariableNames;
+% 因素数
+NumFactor = length(FactorNames);
+% 获得各因素的水平设置数向量
+LevelSettings = zeros(1, NumFactor);
+for i = 1:NumFactor
+    LevelSettings(i) = length(SettingTab{1,i});
+end
 % 生成因素矩阵
-Factor = ff2n(NumFactor);
+FactorMatrix = fullfact(LevelSettings);
 % 生成表
-FA_Tabout = array2table(Factor,'VariableNames',FactorNames);
+FA_Tabout = array2table(FactorMatrix,'VariableNames',FactorNames);
 
 %% 按各因素输入水平值代入的因素表
 for i = 1:NumFactor
-    FA_Tabout{(FA_Tabout{:,i} == 0),i} = LevelSets(i,1);
-    FA_Tabout{(FA_Tabout{:,i} == 1),i} = LevelSets(i,2);
+    LevelSets = SettingTab{1,i};
+    for j = 1:length(LevelSets)
+        FA_Tabout{(FA_Tabout{:,i} == j),i} = LevelSets(1,j);
+    end
 end
 
 %% 输出运行状态
