@@ -1,8 +1,10 @@
-function [QM,SM] = DCMD_Permeation(DirectOpt, MembrProps, SFeedSide, SPermSide)
+function [QM,SM] = DCMD_Permeation(DirectOpt, MembrProps, SFeedSide, SPermSide, opt)
 %% calculate transmembrane permeation
 %  notes of I/O arguments
-%  DirectOpt  - (i integer scalar) opt = -1: flow into membrane
-%                                         1: flow out from membrane
+%  opt - (i integer) = 1 directly calculate the transmembrane flux
+%                        according to MembraProps.TMH and TMC
+%  DirectOpt  - (i integer scalar) = -1: flow into membrane
+%                                     1: flow out from membrane
 %  MembrProps - (i struct) variable of membrane properties
 %            .TMH: hot-side temperature of membrane [K]
 %            .TMC: cold-side temperature of membrane [K]
@@ -34,25 +36,41 @@ function [QM,SM] = DCMD_Permeation(DirectOpt, MembrProps, SFeedSide, SPermSide)
 %  SM - (o struct) variable of transmembrane stream
 %
 %  by Dr. Guan Guoqiang @ SCUT on 2019-08-13
-%
+%  2020-11-25：直接根据膜两侧温度计算跨膜传递量
+
 %%
+if exist('opt','var')
+    switch opt
+        case(1)
+            if isempty(MembrProps.TMH)
+                fprintf('[Error] MembrProps.TMH is empty!\n')
+            end
+            if isempty(MembrProps.TMC)
+                fprintf('[Error] MembrProps.TMH is empty!\n')
+            end
+    end
+else
+    opt = 0;
+end
+    
 % intialize
 MF = SFeedSide.MassFraction;
 C  = MembrProps.MDCoefficient;
 K  = MembrProps.ThermConductivity;
 d  = MembrProps.Thickness;
 SM = struct(SPermSide);
-% calculate the temperature at the membrane surface 
-fun = @(TM)DCMD_Diff_TM(TM, SFeedSide, SPermSide, MembrProps);
-TM0 = [SFeedSide.Temp-1 SPermSide.Temp+1];
-% % use fmincon() to get the TMs
-% lb  = [SPermSide.Temp SPermSide.Temp];
-% ub  = [SFeedSide.Temp SFeedSide.Temp];
-% opts = optimoptions(@fmincon,'Display','off');
-% [TM,fval,exitflag] = fmincon(fun, TM0, [], [], [], [], lb, ub, [], opts);
-% use fminsearch() to get the TMs
-TM = fminsearch(fun, TM0);
-TMH = TM(1); TMC = TM(2);
+
+switch opt
+    case(0)
+        % calculate the temperature at the membrane surface 
+        fun = @(TM)DCMD_Diff_TM(TM, SFeedSide, SPermSide, MembrProps);
+        TM0 = [SFeedSide.Temp-1 SPermSide.Temp+1];
+        TM = fminsearch(fun, TM0);
+        TMH = TM(1); TMC = TM(2);
+    case(1)
+        TMH = MembrProps.TMH;
+        TMC = MembrProps.TMC;
+end
 % get permeation flux according to the difference of vapor pressure
 PSH = DCMD_SatVapPressure(TMH, MF);
 PSC = DCMD_SatVapPressure(TMC);
