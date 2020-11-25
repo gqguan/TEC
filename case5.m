@@ -32,12 +32,12 @@ Membranes(1:NumStage) = MembrProps;
 % set properties for all TECs
 load('TEC_Params.mat') % 载入已有的TEC计算参数
 TECs(1:(NumStage+1)) = TEC_Params.TEC(3,1); % 注意按opt=0计算TEC的吸放热量
-% Debugging ======= 禁用TEC加热和冷却
-for iTEC = 1:length(TECs)
-    TECs(iTEC).Voltage = 0;
-    TECs(iTEC).Current = 0;
-end
-% ============
+% % Debugging ======= 禁用TEC加热和冷却
+% for iTEC = 1:length(TECs)
+%     TECs(iTEC).Voltage = 0;
+%     TECs(iTEC).Current = 0;
+% end
+% % ============
 % 设定各级膜组件中的内部温度分布（热侧TEC壁面温度、热侧主体温度、热侧膜面温度、冷侧膜面温度、冷侧主体温度、冷侧TEC壁面温度）
 for i=1:NumStage
     T0((1+(i-1)*6):6*i) = [T1+1; T1; T1-1; T2+1; T2; T2-1];
