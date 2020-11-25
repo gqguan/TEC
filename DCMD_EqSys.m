@@ -76,8 +76,11 @@ for i = 1:NumStack
     % 重新计算物流性质
     SOutFeeds(i) = DCMD_PackStream(SOutFeeds(i));
     SOutPerms(i) = DCMD_PackStream(SOutPerms(i));
+    % 设定膜两侧温度
+    Membranes(i).TMH = T(3,i);
+    Membranes(i).TMC = T(4,i);
     % 计算热侧流向膜面的热流和物流量
-    [QM(i), SM(i)] = DCMD_Permeation(-1, Membranes(i), SOutFeeds(i), SOutPerms(i));
+    [QM(i), SM(i)] = DCMD_Permeation(-1, Membranes(i), SOutFeeds(i), SOutPerms(i), 1);
     % 计算热侧主流CV中的能量差值，用于求解热侧主体温度使进出物流的焓变等于CV的净输入热量
     fvals(2+(i-1)*6) = DCMD_HeatBalance_BF(T(2,i), Q(i,1), QM(i), SInFeeds(i), SM(i));
     % Boundary layer adhered the hot side of the membrane in the i-th stage
@@ -87,7 +90,7 @@ for i = 1:NumStack
     fvals(3+(i-1)*6) = DCMD_HeatBalance_BL(T(2,i), T(3,i), JHM(i), hF(i))*Membranes(i).Area;
     % Boundary layer adhered the cold side of the membrane in the 1st stage
     % 计算冷侧从膜面流向主流的热流和物流量
-    [QM(i), SM(i)] = DCMD_Permeation(1, Membranes(i), SOutFeeds(i), SOutPerms(i));
+    [QM(i), SM(i)] = DCMD_Permeation(1, Membranes(i), SOutFeeds(i), SOutPerms(i), 1);
     % 计算冷侧从膜面向主流的传热通量
     JHM(i) = QM(i)/Membranes(i).Area;
     % 计算冷侧膜面边界层的传热系数
