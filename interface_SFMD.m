@@ -30,4 +30,4 @@ else
     eta_c = 1-SInPerms(1).Temp/298.15;
     E2 = -Q2S*eta_c/(1-eta_c); % 逆向卡诺循环制冷的能耗
 end
-SEC = (E1+E2)/WP;
+SEC = (E1+E2)/abs(WP);

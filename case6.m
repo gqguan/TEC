@@ -44,8 +44,8 @@ opfun = @(x)interface_SFMD(x, NumStage, SInFeeds, SInPerms, Membranes, TECs);
 % 初值
 x0 = [W1 T1 W2 T2];
 % 变量边界
-lb = [3e-5, 40+273.15, 3e-5, 5+273.15];
-ub = [3e-3, 80+273.15, 3e-3, 30+273.15];
+lb = [3.5e-6, 40+273.15, 3.5e-6, 5+273.15];
+ub = [2.1e-3, 80+273.15, 2.1e-3, 30+273.15];
 % 求优
 x = fmincon(opfun,x0,[],[],[],[],lb,ub);
 
