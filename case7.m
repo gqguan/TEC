@@ -42,9 +42,10 @@ opfun = @(x)interface_SFMD(x, NumStage, SInFeeds, SInPerms, Membranes, TECs);
 x0 = [W1 T1 I1 W2 T2 I2];
 % 变量边界
 lb = [3.5e-6, 40+273.15, 0, 3.5e-6, 5+273.15, 0];
-ub = [2.1e-3, 80+273.15, 8, 2.1e-3, 30+273.15, 0];
+ub = [2.1e-3, 80+273.15, 8, 2.1e-3, 30+273.15, 8];
 % 求优
-x = fmincon(opfun,x0,[],[],[],[],lb,ub);
+opts = optimoptions('fmincon','Display','iter');
+x = fmincon(opfun,x0,[],[],[],[],lb,ub,[],opts);
 
 %% 输出结果
 [SEC,out1,out2] = opfun(x);
