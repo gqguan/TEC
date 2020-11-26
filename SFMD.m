@@ -15,9 +15,12 @@ end
 TEXs = [298.15; 298.15];
 
 %% Solve temperatures
-opts = optimoptions('fsolve', 'Display', 'none', 'MaxFunEvals', 15000, 'MaxIter', 1000);
+% 温度约束条件
+lb = ones(size(T0))*273.16;
+ub = ones(size(T0))*(273.15+98);
+opts = optimoptions(@lsqnonlin, 'Display', 'none');
 fun = @(T)DCMD_EqSys(T, TEXs, TECs, SInFeeds, SInPerms, Membranes);
-[T, fvals, exitflag] = fsolve(fun, T0, opts);
+[T, ~, ~, exitflag] = lsqnonlin(fun, T0, lb, ub, opts);
 [~, Q, QM, SM, SOutFeeds, SOutPerms] = fun(T);
 
 %% Calculate the energy efficiency
