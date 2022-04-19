@@ -41,7 +41,7 @@ if ~exist('opt1','var')
     opt1 = 0; % opt1缺省值
 end
 if ~exist('opt2','var')
-    opt1 = 0; % opt1缺省值
+    opt2 = 0; % opt2缺省值
 end
 % 指定运行模式
 if opt1 ~= 0 && opt1 ~= 1
