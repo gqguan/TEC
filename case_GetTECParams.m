@@ -7,14 +7,29 @@
 %  [2] Huang B J, et al. International Journal of Refrigeration 2000, 23(3): 208-218.
 %
 %% 初始化
-clear; clear global
+clear global
+% 
+if exist('TEC','var')
+    keepTEC = input('是[1]/否[0]用工作空间的TEC参数继续优化：');
+    switch keepTEC
+        case(0)
+            clear
+            % 重新定义数据结构
+            TEC = struct('NumTC', 190, 'NumRatio', 7/12, 'GeomFactor', 2.6e-3, ...
+                         'HTCoefficient', 270, 'HTArea', 40*40e-6, ...
+                         'SeebeckCoefficient', [], 'ElecConductance', [], ...
+                         'ThermConductance', [], 'Voltage', [], 'Current', [], ...
+                         'Parameters', []);
+        case(1)
+            clearvars -except TEC
+            TE_log(sprintf('使用工作空间的变量TEC继续参数优化'))
+        otherwise
+            error('输出操作指令有误！')
+    end
+else
+    clear
+end
 
-% 数据结构定义
-TEC = struct('NumTC', 190, 'NumRatio', 7/12, 'GeomFactor', 2.6e-3, ...
-             'HTCoefficient', 270, 'HTArea', 40*40e-6, ...
-             'SeebeckCoefficient', [], 'ElecConductance', [], ...
-             'ThermConductance', [], 'Voltage', [], 'Current', [], ...
-             'Parameters', []);
 % 半导体制冷片的性能测试实验数据
 % 从实验数据文件ExpData.txt中导入，实验数据存于工作空间的表变量ExpData中
 TE_ImportExpData

@@ -49,11 +49,11 @@ switch opt
                 TEC.HTCoefficient = x(3);
         end
     case(1) % TEC参数为定值
-        if length(x) ~= 3
-            prompt = sprintf('Incorrect Length(x) = %d', length(x));
-            TE_log(prompt, 1);
-            return
-        end
+%         if length(x) ~= 3
+%             prompt = sprintf('Incorrect Length(x) = %d', length(x));
+%             TE_log(prompt, 1);
+%             return
+%         end
         % reset TEC parameters
         TEC.Parameters = x;
 end
@@ -79,7 +79,7 @@ for i = 1: NumExpData
     TEC.Voltage = ExpData.U(i);
     TEC.Current = ExpData.I(i);
     % 计算TEC吸放热量
-    [Q, TEC] = TE_Heat(TH, TC, TEC, opt);
+    [Q, TEC] = TE_Heat(TH, TC, TEC, opt, 1);
     QH(i) = Q(1);
     QC(i) = Q(2);
 %     COP(i) = QC(i)./(QH(i)-QC(i));

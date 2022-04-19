@@ -6,6 +6,6 @@ by Dr. Guan Guoqiang @ SCUT
  * Use two TECs as the heat source and heat sink of DCMD operation
 
 ## reference
- 1 Xuan et al. Cryogenics, 2002, 42: 273-278
- 2 Kaushik et al. International Journal of Heat and Mass Transfer, 2015, 86: 843-852
- 3 Guan et al. Industrial and Engineering Chemistry Research, 2012, 51(41): 13405-13413
+ 1. Xuan et al. Cryogenics, 2002, 42: 273-278
+ 2. Kaushik et al. International Journal of Heat and Mass Transfer, 2015, 86: 843-852
+ 3. Guan et al. Industrial and Engineering Chemistry Research, 2012, 51(41): 13405-13413

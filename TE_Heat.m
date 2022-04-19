@@ -37,10 +37,10 @@
 function [Q, TEC] = TE_Heat(Th, Tc, TEC, opt1, opt2)
 %% 初始化
 % 输入参数检查
-if ~exist(opt1,'var')
+if ~exist('opt1','var')
     opt1 = 0; % opt1缺省值
 end
-if ~exist(opt2,'var')
+if ~exist('opt2','var')
     opt1 = 0; % opt1缺省值
 end
 % 指定运行模式
@@ -49,6 +49,11 @@ if opt1 ~= 0 && opt1 ~= 1
     TE_log(prompt, 1);
     return
 end
+% Calculate parameters of thermocouples
+TEC = TE_MaterialProp((Th+Tc)/2,TEC,opt1);
+a = TEC.SeebeckCoefficient;
+R = TEC.ElecConductance;
+K = TEC.ThermConductance;
 switch opt2
     case(0)
         I = TEC.Current;
@@ -66,24 +71,14 @@ switch opt1
         % Calculate the absorbed and released heats
         switch TEC.NumRatio
             case 0 % 单层结构
-                % Calculate parameters of thermocouples
-                TEC = TE_MaterialProp((Th+Tc)/2, TEC);
-                a = TEC.SeebeckCoefficient;
-                R = TEC.ElecConductance;
-                K = TEC.ThermConductance;
                 N0 = TEC.NumTC;
                 Q(1) = (I*a*Th+I^2*R/2-K*(Th-Tc))*N0;
                 Q(2) = (I*a*Tc-I^2*R/2-K*(Th-Tc))*N0;          
-                % 输出TEC性能参数
-                TEC.SeebeckCoefficient = a;
-                TEC.ElecConductance = R;
-                TEC.ThermConductance = K;                
+%                 % 输出TEC性能参数
+%                 TEC.SeebeckCoefficient = a;
+%                 TEC.ElecConductance = R;
+%                 TEC.ThermConductance = K;                
             otherwise % 两层结构
-                % Get parameters of thermocouples
-                TEC = TE_MaterialProp((Th+Tc)/2, TEC);
-                a = TEC.SeebeckCoefficient;
-                R = TEC.ElecConductance;
-                K = TEC.ThermConductance;
                 m = round(TEC.NumTC*(TEC.NumRatio/(1+TEC.NumRatio)));
                 n = TEC.NumTC-m;
                 k1 = TEC.HTCoefficient;
@@ -99,11 +94,11 @@ switch opt1
 %                 Q(1) = (I*a*Th+I^2*R/2-K*(Th-Tm))*n;
         end
      case(1)
-        % TEC性能参数
-        TEC = TE_MaterialProp((Th+Tc)/2, TEC, opt1);
-        a = TEC.SeebeckCoefficient;
-        R = TEC.ElecConductance;
-        K = TEC.ThermConductance;
+%         % TEC性能参数
+%         TEC = TE_MaterialProp((Th+Tc)/2, TEC, opt1);
+%         a = TEC.SeebeckCoefficient;
+%         R = TEC.ElecConductance;
+%         K = TEC.ThermConductance;
         % 计算吸放热量
         Q(1) = (I*a*Th+I^2*R/2-K*(Th-Tc)); % 单位：W（下同）
         Q(2) = (I*a*Tc-I^2*R/2-K*(Th-Tc));
