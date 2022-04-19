@@ -14,9 +14,12 @@
 %     .ThermConductance  : thermal conductance of 1 and 2 stage of TEC
 %     .Voltage: input electrical voltage [V]
 %     .Current: input electrical current [A]
-%  opt - (i optional scalar) running mode
+%  opt1 - (i optional scalar) calculation method
 %        = 0 (default) 按参考文献[1]计算吸放热量
 %        = 1           按参考文献[2]计算吸放热量
+%  opt2 - (i optional scalar) given electrical current or voltage
+%        = 0 (default) 给定电流计算吸放热量
+%        = 1           给定电压计算吸放热量
 %  Q   - (o double array(2)) heats flowing out/in the hot/cold side of TEC
 %
 %  by Dr. Guan Guoqiang @ SCUT on 2019-08-06
@@ -31,24 +34,34 @@
 %  [2] Huang B J, et al. International Journal of Refrigeration 2000, 23(3): 208-218.
 %  [3] Chen L et al. Applied Energy, 2008, 85: 641-649 [doi:10.1016/j.apenergy.2007.10.005]
 %
-function [Q, TEC] = TE_Heat(Th, Tc, TEC, opt)
+function [Q, TEC] = TE_Heat(Th, Tc, TEC, opt1, opt2)
 %% 初始化
-% 运行模式设定
-switch nargin
-    case(3)
-        % 缺省运行模式
-        opt = 0;
-    case(4)
-        % 指定运行模式
-        if opt ~= 0 && opt ~= 1
-            prompt = sprintf('Unknown specified running mode of %d for TE_Heat()', opt);
-            TE_log(prompt, 1);
-            return
-        end
+% 输入参数检查
+if ~exist(opt1,'var')
+    opt1 = 0; % opt1缺省值
 end
-I = TEC.Current;
+if ~exist(opt2,'var')
+    opt1 = 0; % opt1缺省值
+end
+% 指定运行模式
+if opt1 ~= 0 && opt1 ~= 1
+    prompt = sprintf('Unknown specified running mode of %d for TE_Heat() input argument opt1', opt1);
+    TE_log(prompt, 1);
+    return
+end
+switch opt2
+    case(0)
+        I = TEC.Current;
+    case(1)
+        U = TEC.Voltage;
+        I = (U-TEC.SeebeckCoefficient*(Th-Tc))/TEC.ElecConductance; % eq.(1) ref. [2]
+    otherwise
+        prompt = sprintf('Unknown specified running mode of %d for TE_Heat() input argument opt2', opt2);
+        TE_log(prompt, 1);
+        return        
+end
 %%
-switch opt
+switch opt1
     case(0)     
         % Calculate the absorbed and released heats
         switch TEC.NumRatio
@@ -60,7 +73,7 @@ switch opt
                 K = TEC.ThermConductance;
                 N0 = TEC.NumTC;
                 Q(1) = (I*a*Th+I^2*R/2-K*(Th-Tc))*N0;
-                Q(2) = (I*a*Tc-I^2*R/2-K*(Th-Tc))*N0;
+                Q(2) = (I*a*Tc-I^2*R/2-K*(Th-Tc))*N0;          
                 % 输出TEC性能参数
                 TEC.SeebeckCoefficient = a;
                 TEC.ElecConductance = R;
@@ -87,7 +100,7 @@ switch opt
         end
      case(1)
         % TEC性能参数
-        TEC = TE_MaterialProp((Th+Tc)/2, TEC, opt);
+        TEC = TE_MaterialProp((Th+Tc)/2, TEC, opt1);
         a = TEC.SeebeckCoefficient;
         R = TEC.ElecConductance;
         K = TEC.ThermConductance;
