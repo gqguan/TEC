@@ -79,7 +79,7 @@ for i = 1: NumExpData
     TEC.Voltage = ExpData.U(i);
     TEC.Current = ExpData.I(i);
     % 计算TEC吸放热量
-    [Q, TEC] = TE_Heat(TH, TC, TEC, opt, 1);
+    [Q, TEC] = TE_Heat(TH, TC, TEC, opt, 1); % TH_Heat()最后一个参数为1表示按输入电压计算吸放热量
     QH(i) = Q(1);
     QC(i) = Q(2);
 %     COP(i) = QC(i)./(QH(i)-QC(i));

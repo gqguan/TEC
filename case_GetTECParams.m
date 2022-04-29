@@ -44,7 +44,6 @@ switch opt
         TE_log('Getting TEC type according to TEC.NumRatio');
         if TEC.NumRatio == 0
             TE_log('Given TEC type is one stage')
-            TEC.NumRatio = 0;
             x0 = TEC.GeomFactor;
         else
             TE_log('Given TEC type is two stages')
