@@ -57,6 +57,7 @@ for iCV = 1:nCV
     membr(iCV).Area = membrane.Area/nCV;
 end
 localS1(1:nCV+1) = sIn(1); localS2(1:nCV+1) = sIn(2);
+localQTEC = cell(1,nCV);
 localQM = zeros(1,nCV);
 localSM(1:nCV) = sIn(1);
 localT = zeros(length(T0),nCV);
@@ -67,7 +68,7 @@ switch flowPattern
         for iCV = 1:nCV
             fun = @(T)DCMD_EqSys(T, TEXs, TECs, localS1(iCV), localS2(iCV), membr(iCV));
             T = lsqnonlin(fun, T0, lb, ub, opts);
-            [~, Q, localQM(iCV), localSM(iCV), localS1(iCV+1), localS2(iCV+1)] = fun(T);
+            [~, localQTEC{iCV}, localQM(iCV), localSM(iCV), localS1(iCV+1), localS2(iCV+1)] = fun(T);
             localT(:,iCV) = T;
             if any(ub-T < eps)
                 msg = sprintf('料液侧第%d个CV温度过高',iCV);
@@ -87,7 +88,7 @@ switch flowPattern
             for iCV = 1:nCV
                 fun = @(T)DCMD_EqSys(T, TEXs, TECs, localS1(iCV), localS2(iCV+1), membr(iCV));
                 T = lsqnonlin(fun, T0, lb, ub, opts);
-                [~, Q, localQM(iCV), localSM(iCV), localS1(iCV+1), localS2New(iCV)] = fun(T);
+                [~, localQTEC{iCV}, localQM(iCV), localSM(iCV), localS1(iCV+1), localS2New(iCV)] = fun(T);
                 localT(:,iCV) = T;
             end
             relDeltaS2T = abs([localS2.Temp]-[localS2New.Temp])./[localS2New.Temp];
@@ -107,7 +108,9 @@ end
 sOut(1) = localS1(end);
 sOut(2) = localS2(end);
 profile.T = localT;
+profile.QTEC = localQTEC;
 profile.QM = localQM;
 profile.SM = localSM;
 profile.S1 = localS1;
 profile.S2 = localS2;
+profile.Remarks = sprintf('DCMD膜组件流动模式：%s',flowPattern);
