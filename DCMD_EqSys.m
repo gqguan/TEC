@@ -59,11 +59,11 @@ for i = 1:NumStack
     % Boundary layer adhered the hot side of TECs(i)
     % 计算该级膜组件冷热侧TEC的吸放热量
     if i == 1
-        Q(i,:) = TE_Heat(T(1,i), TEXs(1), TECs(i));
+        Q(i,:) = TE_Heat(T(1,i), TEXs(1), TECs(i))*Membranes(i).Area/TECs(i).HTArea;
     else
-        Q(i,:) = TE_Heat(T(1,i), T(6,i-1), TECs(i));
+        Q(i,:) = TE_Heat(T(1,i), T(6,i-1), TECs(i))*Membranes(i).Area/TECs(i).HTArea;
     end
-    JHSH(i) = Q(i,1)/TECs(i).HTArea; % 从壁面传入热侧流体的热通量
+    JHSH(i) = Q(i,1)/(TECs(i).HTArea*Membranes(i).Area/TECs(i).HTArea); % 从壁面传入热侧流体的热通量
     % 计算热侧壁面与主流间的传热系数（W/m2-K）
     [~, hF(i)] = DCMD_TM(SInFeeds(i), -JHSH(i)); % negative JH1H indicates heat flowing into the feed
     % 计算热侧壁面传热通量的差值，用于求解热侧壁面温度使壁面向主流传热通量与壁面流出热量相等
@@ -84,7 +84,7 @@ for i = 1:NumStack
     SOutFeeds(i).MassFlow = SInFeeds(i).MassFlow+SM(i).MassFlow;
     SOutPerms(i).MassFlow = SInPerms(i).MassFlow-SM(i).MassFlow;
     % 计算热侧主流CV中的能量差值，用于求解热侧主体温度使进出物流的焓变等于CV的净输入热量
-    fvals(2+(i-1)*6) = DCMD_HeatBalance_BF(T(2,i), Q(i,1)*Membranes(i).Area/TECs(i).HTArea, QM(i), SInFeeds(i), SM(i));
+    fvals(2+(i-1)*6) = DCMD_HeatBalance_BF(T(2,i), Q(i,1), QM(i), SInFeeds(i), SM(i));
     % Boundary layer adhered the hot side of the membrane in the i-th stage
     % 计算热侧从主流向膜面的传热通量
     JHM(i) = QM(i)/Membranes(i).Area;
@@ -102,14 +102,14 @@ for i = 1:NumStack
     % Permeate-side bulk flow of stage i+1
     % 计算第i级DCMD中冷侧TEC（即第i+1级DCMD中的热侧TEC）壁面的吸放热量
     if i == NumStack
-        Q(i+1,:) = TE_Heat(TEXs(2), T(6,i), TECs(i+1));
+        Q(i+1,:) = TE_Heat(TEXs(2), T(6,i), TECs(i+1))*Membranes(i).Area/TECs(i).HTArea;
     else
-        Q(i+1,:) = TE_Heat(T(1,i+1), T(6,i), TECs(i+1));
+        Q(i+1,:) = TE_Heat(T(1,i+1), T(6,i), TECs(i+1))*Membranes(i).Area/TECs(i).HTArea;
     end
     % 计算第i级DCMD中冷侧壁面的吸热量
-    JHSC(i+1) = Q(i+1,2)/TECs(i+1).HTArea;
+    JHSC(i+1) = Q(i+1,2)/(TECs(i+1).HTArea*Membranes(i).Area/TECs(i).HTArea);
     % 计算冷侧主流CV的净热量差，用于求解冷侧主流温度使进出物流的焓变等于CV的净输入热量
-    fvals(5+(i-1)*6) = DCMD_HeatBalance_BF(T(5,i), QM(i), Q(i+1,2)*Membranes(i).Area/TECs(i).HTArea, SInPerms(i), SM(i));
+    fvals(5+(i-1)*6) = DCMD_HeatBalance_BF(T(5,i), QM(i), Q(i+1,2), SInPerms(i), SM(i));
     % Boundary layer adhered the cold side of TEC2
     % 计算冷侧壁面边界层的净热量差，用于求解冷侧壁面温度使边界层内传热量等于第i+1级DCMD热侧TEC的冷侧吸热量
     fvals(6+(i-1)*6) = DCMD_HeatBalance_BL(T(5,i), T(6,i), JHSC(i+1), hP(i))*Membranes(i).Area;
