@@ -81,6 +81,8 @@ for i = 1:NumStack
     Membranes(i).TMC = T(4,i);
     % 计算热侧流向膜面的热流和物流量
     [QM(i), SM(i)] = DCMD_Permeation(-1, Membranes(i), SOutFeeds(i), SOutPerms(i), 1);
+    SOutFeeds(i).MassFlow = SInFeeds(i).MassFlow+SM(i).MassFlow;
+    SOutPerms(i).MassFlow = SInPerms(i).MassFlow-SM(i).MassFlow;
     % 计算热侧主流CV中的能量差值，用于求解热侧主体温度使进出物流的焓变等于CV的净输入热量
     fvals(2+(i-1)*6) = DCMD_HeatBalance_BF(T(2,i), Q(i,1)*Membranes(i).Area/TECs(i).HTArea, QM(i), SInFeeds(i), SM(i));
     % Boundary layer adhered the hot side of the membrane in the i-th stage
