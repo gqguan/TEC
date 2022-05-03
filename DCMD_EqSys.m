@@ -29,8 +29,11 @@
 %  by Dr. Guan Guoqiang @ SCUT on 2019-08-23
 %  
 function [F, Q, QM, SM, SOutFeeds, SOutPerms] = ...
-         DCMD_EqSys(TIn, TEXs, TECs, SInFeeds, SInPerms, Membranes)
+         DCMD_EqSys(TIn, TEXs, TECs, SInFeeds, SInPerms, Membranes, opts)
 %% Check the dimension size of input arguments
+if ~exist('opts','var')
+    opts = [0,0];
+end
 % Get the number of DCMD stack
 NumStack = length(Membranes);
 if (length(SInPerms) == NumStack) && (length(SInFeeds) == NumStack) && ...
@@ -59,9 +62,9 @@ for i = 1:NumStack
     % Boundary layer adhered the hot side of TECs(i)
     % 计算该级膜组件冷热侧TEC的吸放热量
     if i == 1
-        Q(i,:) = TE_Heat(T(1,i), TEXs(1), TECs(i))*Membranes(i).Area/TECs(i).HTArea;
+        Q(i,:) = TE_Heat(T(1,i), TEXs(1), TECs(i), opts(1), opts(2))*Membranes(i).Area/TECs(i).HTArea;
     else
-        Q(i,:) = TE_Heat(T(1,i), T(6,i-1), TECs(i))*Membranes(i).Area/TECs(i).HTArea;
+        Q(i,:) = TE_Heat(T(1,i), T(6,i-1), TECs(i), opts(1), opts(2))*Membranes(i).Area/TECs(i).HTArea;
     end
     JHSH(i) = Q(i,1)/(TECs(i).HTArea*Membranes(i).Area/TECs(i).HTArea); % 从壁面传入热侧流体的热通量
     % 计算热侧壁面与主流间的传热系数（W/m2-K）
@@ -102,9 +105,11 @@ for i = 1:NumStack
     % Permeate-side bulk flow of stage i+1
     % 计算第i级DCMD中冷侧TEC（即第i+1级DCMD中的热侧TEC）壁面的吸放热量
     if i == NumStack
-        Q(i+1,:) = TE_Heat(TEXs(2), T(6,i), TECs(i+1))*Membranes(i).Area/TECs(i).HTArea;
+        Q(i+1,:) = TE_Heat(TEXs(2), T(6,i), TECs(i+1), opts(1), opts(2)) ...
+            *Membranes(i).Area/TECs(i).HTArea;
     else
-        Q(i+1,:) = TE_Heat(T(1,i+1), T(6,i), TECs(i+1))*Membranes(i).Area/TECs(i).HTArea;
+        Q(i+1,:) = TE_Heat(T(1,i+1), T(6,i), TECs(i+1), opts(1), opts(2)) ...
+            *Membranes(i).Area/TECs(i).HTArea;
     end
     % 计算第i级DCMD中冷侧壁面的吸热量
     JHSC(i+1) = Q(i+1,2)/(TECs(i+1).HTArea*Membranes(i).Area/TECs(i).HTArea);

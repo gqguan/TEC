@@ -1,4 +1,6 @@
 %% 模拟一维集成热泵DCMD膜组件中的传热和传质现象
+% 当膜组件集成半导体热泵TEHP时，可载入相应的TEC参数，例如用TEC_Params.mat中的H28、H05等
+% 当未集成TEHP时，可载入TEC_Params.mat中的H00（近似绝热的边界条件：无电功输入且导热系数很小）
 %
 % by Dr. Guan Guoqiang @ SCUT on 2022/05/02
 
@@ -29,11 +31,16 @@ sIn(2) = DCMD_PackStream(s2);
 membrane = MembrProps;
 % set properties for all TECs
 load('TEC_Params.mat') % 载入已有的TEC计算参数
-TECs(1:(NumStage+1)) = TEC_Params.TEC(3,1); % 注意按opt=0计算TEC的吸放热量
+% 注意按opt1=0,opt2=1计算TEC的吸放热量
+opts = [0,1]; TECs(1:(NumStage+1)) = TEC_Params.TEC(18,1);
+% opts = [1,0]; TECs(1:(NumStage+1)) = TEC_Params.TEC(14,1);
+% opts = [0,0]; TECs(1:(NumStage+1)) = TEC_Params.TEC(4,1);
+% TECs(1:(NumStage+1)) = TEC_Params.TEC(1,1); % 相当于未集成半导体热泵的DCMD膜组件
+
 
 %% 计算集成热泵DCMD膜组件中的温度分布
-[profile1,sOut1] = TEHPiDCMD(sIn,TECs,TEXs,membrane,"countercurrent");
-[profile2,sOut2] = TEHPiDCMD(sIn,TECs,TEXs,membrane,"cocurrent");
+[profile1,sOut1] = TEHPiDCMD(sIn,TECs,TEXs,membrane,"countercurrent",opts);
+[profile2,sOut2] = TEHPiDCMD(sIn,TECs,TEXs,membrane,"cocurrent",opts);
 
 %% 输出
 DispResults(profile1,DuctGeom,membrane)

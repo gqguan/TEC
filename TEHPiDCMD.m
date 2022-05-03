@@ -2,7 +2,7 @@
 %
 % by Dr. Guan Guoqiang @ SCUT on 2022-05-02
 
-function [profile,sOut] = TEHPiDCMD(sIn,TECs,TEXs,membrane,flowPattern)
+function [profile,sOut] = TEHPiDCMD(sIn,TECs,TEXs,membrane,flowPattern,opts)
 %% 初始化
 nCV = 20;
 eps = 1e-8;
@@ -17,9 +17,10 @@ logger.setFilename(logFilename);
 
 %% 检查输入参数
 % 检查输入变量数量
-if nargin == 5
+if nargin == 6
     % 检查输入变量类型
-    [flag,msg] = ChkArgType({'struct','struct','double','struct','string'},sIn,TECs,TEXs,membrane,flowPattern);
+    [flag,msg] = ChkArgType({'struct','struct','double','struct','string','double'}, ...
+        sIn,TECs,TEXs,membrane,flowPattern,opts);
     if flag
         logger.trace('TEHPiDCMD',msg)
     else
@@ -27,8 +28,9 @@ if nargin == 5
         return
     end
     % 检查输入变量尺寸
-    lenArgs = [2,2,2,1,1];
-    idxArg = ([length(sIn),length(TECs),length(TEXs),length(membrane),length(flowPattern)] ~= lenArgs);
+    lenArgs = [2,2,2,1,1,2];
+    idxArg = ([length(sIn),length(TECs),length(TEXs),length(membrane), ...
+        length(flowPattern),length(opts)] ~= lenArgs);
     if any(idxArg)
         prompt = sprintf('第%d个输入参数尺寸应为%d',find(idx,1),lenArgs(find(idx,1)));
         logger.error('TEHPiDCMD',prompt)
@@ -50,7 +52,7 @@ T0 = [T1+1; T1; T1-1; T2+1; T2; T2-1];
 lb = ones(size(T0))*273.16;
 ub = ones(size(T0))*(273.15+98);
 % 求解参数
-opts = optimoptions(@lsqnonlin, 'Display', 'none');
+solOpts = optimoptions(@lsqnonlin, 'Display', 'none');
 % 沿流向分M个控制体CV
 membr(1:nCV) = membrane;
 for iCV = 1:nCV
@@ -66,8 +68,8 @@ switch flowPattern
     case("cocurrent")
         logger.trace('TEHPiDCMD','并流计算')
         for iCV = 1:nCV
-            fun = @(T)DCMD_EqSys(T, TEXs, TECs, localS1(iCV), localS2(iCV), membr(iCV));
-            T = lsqnonlin(fun, T0, lb, ub, opts);
+            fun = @(T)DCMD_EqSys(T, TEXs, TECs, localS1(iCV), localS2(iCV), membr(iCV), opts);
+            T = lsqnonlin(fun, T0, lb, ub, solOpts);
             [~, localQTEC{iCV}, localQM(iCV), localSM(iCV), localS1(iCV+1), localS2(iCV+1)] = fun(T);
             localT(:,iCV) = T;
             if any(ub-T < eps)
@@ -86,13 +88,19 @@ switch flowPattern
         nInteration = 1;
         while interativeOPT
             for iCV = 1:nCV
-                fun = @(T)DCMD_EqSys(T, TEXs, TECs, localS1(iCV), localS2(iCV+1), membr(iCV));
-                T = lsqnonlin(fun, T0, lb, ub, opts);
+                fun = @(T)DCMD_EqSys(T, TEXs, TECs, localS1(iCV), localS2(iCV+1), membr(iCV), opts);
+                T = lsqnonlin(fun, T0, lb, ub, solOpts);
                 [~, localQTEC{iCV}, localQM(iCV), localSM(iCV), localS1(iCV+1), localS2New(iCV)] = fun(T);
                 localT(:,iCV) = T;
             end
             relDeltaS2T = abs([localS2.Temp]-[localS2New.Temp])./[localS2New.Temp];
-            if max(relDeltaS2T) > eps
+            maxRelDT = max(relDeltaS2T);
+            if maxRelDT > eps 
+                if ChkDivergency(maxRelDT,5)
+                    interativeOPT = false;
+                    msg = sprintf('迭代求解逆流过程时温度发散（dRelT=%.4e）',maxRelDT);
+                    logger.error('TEHPiDCMD',msg)
+                end
                 localS2 = localS2New;
                 nInteration = nInteration+1;
             else
@@ -114,3 +122,4 @@ profile.SM = localSM;
 profile.S1 = localS1;
 profile.S2 = localS2;
 profile.Remarks = sprintf('DCMD膜组件流动模式：%s',flowPattern);
+
