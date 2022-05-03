@@ -24,7 +24,7 @@ CommonDef
 NumStage = 1;
 % 设定膜组件的热、冷侧进口温度和流率
 T1 = 323.15; T2 = 288.15; % [K]
-W1 = 1.5e-4; W2 = 1.5e-4; % [kg/s]
+W1 = 1.5e-4; W2 = 1.5e-5; % [kg/s]
 % 设定环境温度
 TEXs = [298.15,298.15]; % [K]
 % 膜组件热侧进料初始化
@@ -53,6 +53,7 @@ opts = [0,0]; TECs(1:(NumStage+1)) = TEC_Params.TEC(1,1); % 相当于未集成半导体热
 %% 计算集成热泵DCMD膜组件中的温度分布
 [profile1,sOut1] = TEHPiDCMD(sIn,TECs,TEXs,membrane,"countercurrent",opts);
 % [profile2,sOut2] = TEHPiDCMD(sIn,TECs,TEXs,membrane,"cocurrent",opts);
+opStr = 'cooling';
 
 %% DCMD系统单位能耗
 % 计算稳态操作时料液放热量Q(1)和渗透液吸热量Q(2)
@@ -63,13 +64,14 @@ E(1) = Q(1);
 % opts = [0,1]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(18,1);
 opts = [1,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(14,1);
 % opts = [0,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(4,1);
-[E(2),QDiff] = CalcTECPower('cooling',Q(2),TEXs(1),mean([TP1,TP2]),exTECs(1),opts);
+[E(2),QTEC,QDiff] = CalcTECPower(opStr,Q(2),TEXs(1),mean([TP1,TP2]),exTECs(1),opts);
 % 计算系统总能耗
 SEC = sum(E)/WP/3600/1000; % [kWh/kg]
 
 %% 输出
+fprintf('DCMD系统在膜组件进口温度分别为%.2f[K]和%.2f[K]、流率分别为%.4g[kg/s]和%.4g[kg/s]\n',T1,T2,W1,W2)
 fprintf('DCMD系统稳定操作需要加热量%.4g[W]和制冷量%.4g[W]\n',Q(1),Q(2))
-fprintf('系统制冷采用TEC（编号%s）吸热，计算热量偏差为%.4g[W]\n',TEC_Params.pid{14},QDiff)
+fprintf('系统制冷采用TEC（编号%s）%s，计算热量为%.4g[W]，其偏差为%.4g[W]\n',TEC_Params.pid{14},opStr,QTEC,QDiff)
 fprintf('DCMD系统产水率为%.4g[kg/h]，加热消耗能量%.4g[W]，冷却消耗能量%.4g[W]，单位能耗为%.4g[kWh/kg]\n',WP*3600,E(1),E(2),SEC)
 figObj1 = DispResults(profile1,DuctGeom,membrane);
 % figObj2 = DispResults(profile2,DuctGeom,membrane);
@@ -130,7 +132,7 @@ function [Q,WP,QM,TP1,TP2] = CalcHeat(profile)
     Q(2) = QM+WP*cp2*(TM(2)-TP2);
 end
 
-function [E,fval] = CalcTECPower(opStr,Q,Th,Tc,TEC,opts)
+function [E,Q,fval] = CalcTECPower(opStr,Q,Th,Tc,TEC,opts)
     switch opStr
         case('cooling')
             x0 = 2; lb = 0.1; ub = 12.5;
@@ -138,7 +140,7 @@ function [E,fval] = CalcTECPower(opStr,Q,Th,Tc,TEC,opts)
             fun = @(x)GetTECHeat(x,opStr,Th,Tc,TEC,opts)-Q;
             x1 = lsqnonlin(fun,x0,lb,ub,solOpts);
             fval = fun(x1);
-            [~,E] = GetTECHeat(x1,opStr,Th,Tc,TEC,opts);
+            [Q,E] = GetTECHeat(x1,opStr,Th,Tc,TEC,opts);
         case('heating')
         otherwise
     end
