@@ -18,6 +18,10 @@
 
 %% 初始化
 clear
+% 添加\Common目录以便调用自定义公用函数
+homePath = cd;
+idxPath = strfind(homePath,'\');
+addpath([homePath(1:idxPath(2)),'Common\'])
 
 %% 模拟DCMD系统能耗情况
 % 采用4因素Box-Behnken设计
