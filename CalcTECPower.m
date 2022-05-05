@@ -32,6 +32,7 @@ function [E,Q,diffQ,nTEC] = CalcTECPower(opStr,givenQ,Th,Tc,TEC,opts)
                 strUnit = {'A','V'};
                 msg = sprintf('给定传热量%.4g[W]大于TEC能力%.4g[W]', ...
                     givenQ,Q);
+                logger.trace('CalcTECPower',msg)
                 % 用nTEC个TEC并联传热
                 nTEC = ceil(givenQ/Q);
                 fun1 = @(x)GetTECHeat(x,opStr,Th,Tc,TEC,opts)-givenQ/nTEC;
