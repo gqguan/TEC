@@ -53,9 +53,10 @@ outTab.Q2 = Q(2);
 % opts = [0,1]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(18,1);
 opts = [1,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(14,1);
 % opts = [0,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(4,1);
-[E(2),QTEC,~] = CalcTECPower(opStr,Q(2),TEXs(1),mean([TP1,TP2]),exTECs(1),opts);
+[E(2),QTEC,~,nTEC] = CalcTECPower(opStr,Q(2),TEXs(1),mean([TP1,TP2]),exTECs(1),opts);
 outTab.QTEC = QTEC;
 outTab.E2 = E(2);
+outTab.NTEC = nTEC;
 % 计算系统总能耗
 SEC = sum(E)/WP/3600/1000; % [kWh/kg]
 outTab.SEC = SEC;
