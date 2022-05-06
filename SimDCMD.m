@@ -41,7 +41,7 @@ opStr = 'cooling';
 
 %% DCMD系统单位能耗
 % 计算稳态操作时料液放热量Q(1)和渗透液吸热量Q(2)
-[Q,WP,QM,TP1,TP2] = CalcHeat(profile);
+[Q,QM,WF,WP,TP1,TP2] = CalcHeat(profile,inf);
 outTab.WP = WP;
 outTab.QM = QM;
 % 加热器功耗
@@ -101,27 +101,7 @@ function [DuctGeom,Stream,MembrProps] = InitStruct()
                         'ThermConductivity', (0.18*0.3+0.025*0.7));
 end
 
-function [Q,WP,QM,TP1,TP2] = CalcHeat(profile)
-    T0 = 298.15; % 进料温度为环境温度[K]
-    QM = sum(profile.QM); % 跨膜传热量[W]
-    WP = sum(arrayfun(@(x)x.MassFlow,profile.SM)); % 跨膜渗透量[kg/s]
-    TM = mean(profile.T(3:4,:),2);
-    iStart = strfind(profile.Remarks,'：');
-    switch profile.Remarks(iStart+1:end)
-        case('cocurrent')
-            TP1 = profile.S2(1).Temp;
-            TP2 = profile.S2(end).Temp;
-        case('countercurrent')
-            TP1 = profile.S2(end).Temp;
-            TP2 = profile.S2(1).Temp;
-        otherwise
-            error('CalcHeat()输入参数profile字段Remarks中无有效的流型信息')
-    end
-    cp1 = mean([profile.S1.SpecHeat]);
-    cp2 = mean([profile.S2.SpecHeat]);
-    Q(1) = QM+WP*cp1*(TM(1)-T0);
-    Q(2) = QM+WP*cp2*(TM(2)-TP2);
-end
+
 
 
 
