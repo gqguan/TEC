@@ -1,5 +1,9 @@
 
-function [outTab,profile] = SimDCMD(W1,T1,W2,T2,refluxRatio)
+function [outTab,profile] = SimDCMD(W1,T1,W2,T2,config,refluxRatio)
+% 输入参数config说明：
+% classical - 传统DCMD系统：外置料液加热和渗透液冷却单元，其中加热用电热，冷却用TEC
+% extTEHP   - 在传统DCMD系统的基础上外置加热和冷却采用半导体热泵耦合，
+%             采用料液侧部分回流解决TEC放热量大于吸热量的问题，故在该设定下无需输入参数refluxRation
 outTab = table;
 % 调用公用变量定义，其中包括DuctGeom（流道几何尺寸）、Stream（物料定义）、MembrProps（膜材料性质）
 [DuctGeom,Stream,MembrProps] = InitStruct();
@@ -7,10 +11,14 @@ outTab = table;
 if ~exist('refluxRatio','var')
     refluxRatio = inf;
 end
+if ~exist('config','var')
+    config = 'classical';
+end
 if nargin == 0
     T1 = 323.15; T2 = 288.15; % [K]
-    W1 = 1.217e-5; W2 = 1.217e-3; % [kg/s]
+    W1 = 1.217e-4; W2 = 1.217e-4; % [kg/s]
     refluxRatio = inf; % 全回流
+    config = 'extTEHP'; 
 end
 % 设定集成TEC多级SFMD系统的级数
 NumStage = 1;
@@ -36,36 +44,77 @@ load('TEC_Params.mat','TEC_Params') % 载入已有的TEC计算参数
 % opts = [0,1]; TECs(1:(NumStage+1)) = TEC_Params.TEC(18,1);
 % opts = [1,0]; TECs(1:(NumStage+1)) = TEC_Params.TEC(14,1);
 % opts = [0,0]; TECs(1:(NumStage+1)) = TEC_Params.TEC(4,1);
-opts = [0,0]; TECs(1:(NumStage+1)) = TEC_Params.TEC(1,1); % 相当于未集成半导体热泵的DCMD膜组件
+switch config
+    case('classical') % 相当于未集成半导体热泵的DCMD膜组件
+        opts = [0,0]; TECs(1:(NumStage+1)) = TEC_Params.TEC(1,1); 
+    case('extTEHP') % 膜组件设置与'classical'相同
+        opts = [0,0]; TECs(1:(NumStage+1)) = TEC_Params.TEC(1,1); 
+    otherwise
+        error('SimDCMD()中输入参数config无法识别！')
+end
 
 
 %% 计算集成热泵DCMD膜组件中的温度分布
+% 逆流操作（因为通常逆流操作单位能耗更低）
 [profile,~] = TEHPiDCMD(sIn,TECs,TEXs,membrane,"countercurrent",opts);
 opStr = 'cooling';
 
 %% DCMD系统单位能耗
-% 计算稳态操作回流比为R时料液放热量Q(1)和渗透液吸热量Q(2)
-outTab.RR = refluxRatio;
-[Q,QM,WF,WP,TP1,TP2] = CalcHeat(profile,refluxRatio);
+switch config 
+    case('classical')
+        % 计算稳态操作回流比为R时料液放热量Q(1)和渗透液吸热量Q(2)
+        outTab.RR = refluxRatio;
+        [Q,QM,WF,WP,TP1,TP2] = CalcHeat(profile,refluxRatio);
+        % 计算膜组件外置半导体制冷功耗
+        % opts = [0,1]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(18,1);
+        opts = [1,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(14,1);
+        % opts = [0,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(4,1);
+        [E(2),QTEC,~,nTEC] = CalcTECPower(opStr,Q(2),TEXs(1),mean([TP1,TP2]),exTECs(1),opts);
+        outTab.QTEC = QTEC;
+        outTab.E2 = E(2);
+        outTab.NTEC = nTEC;
+        % 加热器功耗
+        E(1) = Q(1);
+        outTab.Q1 = Q(1);
+        outTab.E1 = E(1);
+        outTab.Q2 = Q(2);
+        % 计算系统总能耗
+        SEC = sum(E)/WP/3600/1000; % [kWh/kg]
+        outTab.SEC = SEC;
+    case('extTEHP') % 计算稳态操作全回流时料液放热量Q(1)和渗透液吸热量Q(2)
+        % 计算零回流时的料液加热所需热量
+        refluxRatio = 0;
+        [Q,QM,~,WP,TP1,TP2] = CalcHeat(profile,refluxRatio);
+        % 计算膜组件外置半导体制冷功耗
+        % opts = [0,1]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(18,1);
+        opts = [1,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(14,1);
+        % opts = [0,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(4,1);
+        [E(2),QTEC,~,nTEC] = CalcTECPower(opStr,Q(2),TEXs(1),mean([TP1,TP2]),exTECs(1),opts);
+        outTab.QTEC = QTEC;
+        outTab.E2 = E(2);
+        outTab.NTEC = nTEC;
+        % TEC向料液侧放热量
+        Q1 = E(2)+QTEC;
+        if Q1 > Q(1) 
+            warning('TEC放热量大于料液加热所需最大热量，建议提高W1！')
+        end
+        outTab.Q1 = Q1;
+        outTab.E1 = 0; % 集成热泵时放热能耗为0
+        outTab.Q2 = Q(2);
+        % 计算料液侧加热量为Q1时的回流比
+        [RR,~,WF,~,~,~] = CalcReflux(profile,Q1);
+        outTab.RR = RR;
+        % 计算系统总能耗
+        SEC = sum(E)/WP/3600/1000; % [kWh/kg]
+        outTab.SEC = SEC;
+end
 outTab.WF = WF;
 outTab.WP = WP;
 outTab.QM = QM;
-% 加热器功耗
-E(1) = Q(1);
-outTab.Q1 = Q(1);
-outTab.E1 = E(1);
-outTab.Q2 = Q(2);
-% 计算膜组件外置半导体制冷功耗
-% opts = [0,1]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(18,1);
-opts = [1,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(14,1);
-% opts = [0,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(4,1);
-[E(2),QTEC,~,nTEC] = CalcTECPower(opStr,Q(2),TEXs(1),mean([TP1,TP2]),exTECs(1),opts);
-outTab.QTEC = QTEC;
-outTab.E2 = E(2);
-outTab.NTEC = nTEC;
-% 计算系统总能耗
-SEC = sum(E)/WP/3600/1000; % [kWh/kg]
-outTab.SEC = SEC;
+% 整理输出表格各列顺序
+colNames = {'RR' 'WF' 'WP' 'QM' 'Q1' 'E1' 'Q2' 'QTEC' 'E2' 'NTEC' 'SEC'};
+sortedColI = cellfun(@(x)find(strcmp(x,outTab.Properties.VariableNames)),colNames);
+outTab = outTab(:,sortedColI);
 
 %% 输出
 % fprintf('DCMD系统在膜组件进口温度分别为%.2f[K]和%.2f[K]、流率分别为%.4g[kg/s]和%.4g[kg/s]\n',T1,T2,W1,W2)
