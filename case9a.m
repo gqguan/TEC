@@ -20,18 +20,18 @@
 clear
 
 %% 模拟DCMD系统能耗情况
-% 采用4因素Box-Behnken设计
-dMat = bbdesign(4)+2; % 2是为了将三个水平代号[-1 0 1]转换为索引
+% % 采用4因素Box-Behnken设计
+% dMat = bbdesign(4)+2; % 2是为了将三个水平代号[-1 0 1]转换为索引
 % % 中心复合设计
 % dMat = ccdesign(4)+3; % 2是为了将5个水平代号[-2 -1 0 1 2]转换为索引
-% % 全因素设计
-% dMat = fullfact([3 3 3 3]);
+% 全因素设计
+dMat = fullfact([3 3 3 3 2]);
 nLvl = max(dMat);
-% frLvls = linspace(1.217e-5,2.434e-2,3); %  两侧膜组件进料流率 [kg/s] Re = 1~2000
-W1Lvls = linspace(1.217e-4,1.217e-2,nLvl(1)); %  料液侧膜组件进料流率 [kg/s] Re=10~1000
+W1Lvls = linspace(1.217e-4*5,1.217e-2,nLvl(1)); %  料液侧膜组件进料流率 [kg/s] Re=10*5~1000
 T1Lvls = linspace(273.15+45,273.15+60,nLvl(2)); % 料液侧膜组件进料温度 [K]
-W2Lvls = linspace(1.217e-4,1.217e-2,nLvl(1)); % 渗透侧膜组件进料流率 [kg/s] Re=10~1000
+W2Lvls = linspace(1.217e-4*5,1.217e-2,nLvl(3)); % 渗透侧膜组件进料流率 [kg/s] Re=10*5~1000
 T2Lvls = linspace(273.15+5,273.15+20,nLvl(4)); % 渗透侧膜组件进料温度 [K]
+CFGLvls = {'classical','extTEHP'}; %  DCMD配置方案
 results = table;
 % 实验条件
 RR = inf; % 回流比
@@ -42,13 +42,14 @@ parfor iExp = 1:n % parfor循环中的变量为临时变量，不能在parfor循环以外访问
     T1 = T1Lvls(dMat(iExp,2));
     W2 = W2Lvls(dMat(iExp,3));
     T2 = T2Lvls(dMat(iExp,4));
-    tab1 = table(W1,T1,W2,T2);
-    [tab2,profile] = SimDCMD(W1,T1,W2,T2,RR);
+    CFG = CFGLvls(dMat(iExp,5));
+    tab1 = [cell2table(CFG),table(W1,T1,W2,T2)];
+    [tab2,profile] = SimDCMD(W1,T1,W2,T2,CFG{1});
     results(iExp,:) = [tab1,tab2,cell2table({profile})];
     hbar.iterate(1)
 end
-results.Properties.VariableNames = {'W1' 'T1' 'W2' 'T2' 'RR' 'WF' 'WP' 'QM' 'Q1' ...
-    'E1' 'Q2' 'QTEC' 'E2' 'NTEC' 'SEC' 'profile'};
+results.Properties.VariableNames = {'CFG' 'W1' 'T1' 'W2' 'T2' 'RR' 'WF' ...
+    'WP' 'QM' 'Q1' 'E1' 'Q2' 'QTEC' 'E2' 'NTEC' 'SEC' 'profile'};
 close(hbar);
 
 %% 后处理

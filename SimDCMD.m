@@ -15,8 +15,8 @@ if ~exist('config','var')
     config = 'classical';
 end
 if nargin == 0
-    T1 = 323.15; T2 = 288.15; % [K]
-    W1 = 1.217e-4; W2 = 1.217e-4; % [kg/s]
+    T1 = 318.15; T2 = 285.65; % [K]
+    W1 = 1.217e-4*5; W2 = 6.146e-3; % [kg/s]
     refluxRatio = inf; % 全回流
     config = 'extTEHP'; 
 end
@@ -96,7 +96,7 @@ switch config
         % TEC向料液侧放热量
         Q1 = E(2)+QTEC;
         if Q1 > Q(1) 
-            warning('TEC放热量大于料液加热所需最大热量，建议提高W1！')
+            warning('TEC放热量%.4g[W]大于料液加热所需最大热量%.4g[W]，建议提高W1！',Q1,Q(1))
         end
         outTab.Q1 = Q1;
         outTab.E1 = 0; % 集成热泵时放热能耗为0
