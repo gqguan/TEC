@@ -4,6 +4,7 @@ function [outTab,profile] = SimDCMD(W1,T1,W2,T2,config,refluxRatio)
 % classical - 传统DCMD系统：外置料液加热和渗透液冷却单元，其中加热用电热，冷却用TEC
 % extTEHP   - 在传统DCMD系统的基础上外置加热和冷却采用半导体热泵耦合，
 %             采用料液侧部分回流解决TEC放热量大于吸热量的问题，故在该设定下无需输入参数refluxRation
+% feedTEHP  - 在膜组件料液侧集成TEHP单元：TEHP热侧在膜组件料液流道中加热料液，而TEHP冷侧从渗透液吸热
 outTab = table;
 % 调用公用变量定义，其中包括DuctGeom（流道几何尺寸）、Stream（物料定义）、MembrProps（膜材料性质）
 [DuctGeom,Stream,MembrProps] = InitStruct();
@@ -45,18 +46,21 @@ load('TEC_Params.mat','TEC_Params') % 载入已有的TEC计算参数
 % opts = [1,0]; TECs(1:(NumStage+1)) = TEC_Params.TEC(14,1);
 % opts = [0,0]; TECs(1:(NumStage+1)) = TEC_Params.TEC(4,1);
 switch config
-    case('classical') % 相当于未集成半导体热泵的DCMD膜组件
-        opts = [0,0]; TECs(1:(NumStage+1)) = TEC_Params.TEC(1,1); 
-    case('extTEHP') % 膜组件设置与'classical'相同
-        opts = [0,0]; TECs(1:(NumStage+1)) = TEC_Params.TEC(1,1); 
+    case {'classical','extTEHP'} % 相当于未集成半导体热泵的DCMD膜组件
+        opts = [0,0]; TECs(1:(NumStage+1)) = TEC_Params.TEC(1,1); % 近似绝热
+    case {'feedTEHP'} % 集成半导体热泵的DCMD膜组件
+        opts = [1,0]; TECs(1) = TEC_Params.TEC(15,1); % H27（RMSE=0.855）
+        TECs(NumStage+1) = TEC_Params.TEC(2,1); % 近似绝热
     otherwise
         error('SimDCMD()中输入参数config无法识别！')
 end
 
 
 %% 计算集成热泵DCMD膜组件中的温度分布
-% 逆流操作（因为通常逆流操作单位能耗更低）
-[profile,~] = TEHPiDCMD(sIn,TECs,TEXs,membrane,"countercurrent",opts);
+% % 逆流操作（因为通常逆流操作单位能耗更低）
+% [profile,~] = TEHPiDCMD(sIn,TECs,TEXs,membrane,"countercurrent",opts);
+% 并流操作
+[profile,~] = TEHPiDCMD(sIn,TECs,TEXs,membrane,"cocurrent",opts);
 opStr = 'cooling';
 
 %% DCMD系统单位能耗
@@ -66,9 +70,7 @@ switch config
         outTab.RR = refluxRatio;
         [Q,QM,WF,WP,TP1,TP2] = CalcHeat(profile,refluxRatio);
         % 计算膜组件外置半导体制冷功耗
-        % opts = [0,1]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(18,1);
-        opts = [1,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(14,1);
-        % opts = [0,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(4,1);
+        opts = [1,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(15,1);
         [E(2),QTEC,~,nTEC] = CalcTECPower(opStr,Q(2),TEXs(1),mean([TP1,TP2]),exTECs(1),opts);
         outTab.QTEC = QTEC;
         outTab.E2 = E(2);
@@ -87,7 +89,7 @@ switch config
         [Q,QM,~,WP,TP1,TP2] = CalcHeat(profile,refluxRatio);
         % 计算膜组件外置半导体制冷功耗
         % opts = [0,1]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(18,1);
-        opts = [1,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(14,1);
+        opts = [1,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(15,1);
         % opts = [0,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(4,1);
         [E(2),QTEC,~,nTEC] = CalcTECPower(opStr,Q(2),TEXs(1),mean([TP1,TP2]),exTECs(1),opts);
         outTab.QTEC = QTEC;
@@ -107,6 +109,11 @@ switch config
         % 计算系统总能耗
         SEC = sum(E)/WP/3600/1000; % [kWh/kg]
         outTab.SEC = SEC;
+    case('feedTEHP')
+        % 计算零回流时的料液加热所需热量
+        refluxRatio = 0;
+        [Q,QM,WF,WP,TP1,TP2] = CalcHeat(profile,refluxRatio);
+        
 end
 outTab.WF = WF;
 outTab.WP = WP;
