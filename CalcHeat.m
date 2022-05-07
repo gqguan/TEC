@@ -30,9 +30,9 @@ function [Q,QM,WF,WP,TP1,TP2] = CalcHeat(profile,R)
     if isinf(R) % 全回流
         Q(1) = QM+WP*cp1*(TM(1)-T0);
         WF = WP;
-    else % 部分回流，料液侧有出料，详见笔记2022/5/6
-        RT = R*TF2;
-        Q(1) = (QM+WP*cp1*(TM(1)-TF2)+WP*cp1*(TF2-T0)*RT/(T0+RT))/(1-(TF2-T0)/(T0+RT));
+    else % 部分回流，Q1的推导见case_DeriveFormulus.m
+        TMF = TM(1);
+        Q(1) = (QM*T0 + QM*R*TF2 + TF1^2*W1*cp1 + R*TF1^2*W1*cp1 - T0*TF1*W1*cp1 - T0*TF1*WP*cp1 + T0*TMF*WP*cp1 - R*TF1*TF2*W1*cp1 - R*T0*TF1*WP*cp1 + R*TF2*TMF*WP*cp1)/(TF1*(R + 1));
         WF = (W1+WP)/(1+R);
     end
     Q(2) = QM+WP*cp2*(TM(2)-TP2);

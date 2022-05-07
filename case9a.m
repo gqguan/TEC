@@ -34,6 +34,7 @@ W2Lvls = linspace(1.217e-4,1.217e-2,nLvl(1)); % 渗透侧膜组件进料流率 [kg/s] Re=1
 T2Lvls = linspace(273.15+5,273.15+20,nLvl(4)); % 渗透侧膜组件进料温度 [K]
 results = table;
 % 实验条件
+RR = inf; % 回流比
 n = size(dMat,1);
 hbar = parfor_progressbar(n,'Computing...');
 parfor iExp = 1:n % parfor循环中的变量为临时变量，不能在parfor循环以外访问
@@ -42,11 +43,11 @@ parfor iExp = 1:n % parfor循环中的变量为临时变量，不能在parfor循环以外访问
     W2 = W2Lvls(dMat(iExp,3));
     T2 = T2Lvls(dMat(iExp,4));
     tab1 = table(W1,T1,W2,T2);
-    [tab2,profile] = SimDCMD(W1,T1,W2,T2);
+    [tab2,profile] = SimDCMD(W1,T1,W2,T2,RR);
     results(iExp,:) = [tab1,tab2,cell2table({profile})];
     hbar.iterate(1)
 end
-results.Properties.VariableNames = {'W1' 'T1' 'W2' 'T2' 'WP' 'QM' 'Q1' ...
+results.Properties.VariableNames = {'W1' 'T1' 'W2' 'T2' 'RR' 'WF' 'WP' 'QM' 'Q1' ...
     'E1' 'Q2' 'QTEC' 'E2' 'NTEC' 'SEC' 'profile'};
 close(hbar);
 

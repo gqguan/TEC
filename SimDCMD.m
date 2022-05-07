@@ -1,5 +1,5 @@
 
-function [outTab,profile] = SimDCMD(W1,T1,W2,T2)
+function [outTab,profile] = SimDCMD(W1,T1,W2,T2,refluxRatio)
 outTab = table;
 % 调用公用变量定义，其中包括DuctGeom（流道几何尺寸）、Stream（物料定义）、MembrProps（膜材料性质）
 [DuctGeom,Stream,MembrProps] = InitStruct();
@@ -7,6 +7,7 @@ outTab = table;
 if nargin == 0
     T1 = 323.15; T2 = 288.15; % [K]
     W1 = 1.217e-5; W2 = 1.217e-3; % [kg/s]
+    refluxRatio = inf; % 全回流
 end
 % 设定集成TEC多级SFMD系统的级数
 NumStage = 1;
@@ -40,8 +41,10 @@ opts = [0,0]; TECs(1:(NumStage+1)) = TEC_Params.TEC(1,1); % 相当于未集成�
 opStr = 'cooling';
 
 %% DCMD系统单位能耗
-% 计算稳态操作时料液放热量Q(1)和渗透液吸热量Q(2)
-[Q,QM,WF,WP,TP1,TP2] = CalcHeat(profile,inf);
+% 计算稳态操作回流比为R时料液放热量Q(1)和渗透液吸热量Q(2)
+outTab.RR = refluxRatio;
+[Q,QM,WF,WP,TP1,TP2] = CalcHeat(profile,refluxRatio);
+outTab.WF = WF;
 outTab.WP = WP;
 outTab.QM = QM;
 % 加热器功耗
