@@ -1,4 +1,4 @@
-function [Q,QM,WF,WP,TP1,TP2,relDiffQ] = CalcHeat(profile,R)
+function [Q,QM,WF,WP,TP1,TP2,TF1,TF2,relDiffQ] = CalcHeat(profile,R)
     % 已知膜组件温度分布，计算DCMD系统在给定回流比时的料液加热量和进、出料流率
     if ~exist('R','var')
         R = inf; % 回流比为无穷大，即全回流
@@ -41,5 +41,5 @@ function [Q,QM,WF,WP,TP1,TP2,relDiffQ] = CalcHeat(profile,R)
     % 计算笔记2022/5/8中CV2的能量平衡
     Q1 = sum(cellfun(@(x)x(1,1),profile.QTEC)); % 膜组件热侧TEC向料液加热量
     Q2 = sum(cellfun(@(x)x(1,2),profile.QTEC)); % 膜组件热侧TEC从环境吸热量，若热侧集成TEHP吸热量=冷却渗透液的冷量
-    relDiffQ = abs(W2*cp2*(TP2-TP1)-Q2)/Q2;
+    relDiffQ = (W2*cp2*(TP2-TP1)-Q2)/Q2;
 end

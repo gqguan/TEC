@@ -6,6 +6,9 @@ function [outTab,profile] = SimDCMD(W1,T1,W2,T2,config,refluxRatio)
 %             采用料液侧部分回流解决TEC放热量大于吸热量的问题，故在该设定下无需输入参数refluxRation
 % feedTEHP  - 在膜组件料液侧集成TEHP单元：TEHP热侧在膜组件料液流道中加热料液，而TEHP冷侧从渗透液吸热
 outTab = table;
+% WF = missing;
+% WP = missing;
+% QM = missing;
 % 调用公用变量定义，其中包括DuctGeom（流道几何尺寸）、Stream（物料定义）、MembrProps（膜材料性质）
 [DuctGeom,Stream,MembrProps] = InitStruct();
 % 设定膜组件的热、冷侧进口温度和流率
@@ -19,7 +22,7 @@ if nargin == 0
     T1 = 318.15; T2 = 285.65; % [K]
     W1 = 1.217e-4*5; W2 = 6.146e-3; % [kg/s]
     refluxRatio = inf; % 全回流
-    config = 'extTEHP'; 
+    config = 'feedTEHP'; 
 end
 % 设定集成TEC多级SFMD系统的级数
 NumStage = 1;
@@ -50,6 +53,7 @@ switch config
         opts = [0,0]; TECs(1:(NumStage+1)) = TEC_Params.TEC(1,1); % 近似绝热
     case {'feedTEHP'} % 集成半导体热泵的DCMD膜组件
         opts = [1,0]; TECs(1) = TEC_Params.TEC(15,1); % H27（RMSE=0.855）
+        TECs(1).Current = 1.2;
         TECs(NumStage+1) = TEC_Params.TEC(2,1); % 近似绝热
     otherwise
         error('SimDCMD()中输入参数config无法识别！')
@@ -57,63 +61,88 @@ end
 
 
 %% 计算集成热泵DCMD膜组件中的温度分布
-% % 逆流操作（因为通常逆流操作单位能耗更低）
-% [profile,~] = TEHPiDCMD(sIn,TECs,TEXs,membrane,"countercurrent",opts);
-% 并流操作
-[profile,~] = TEHPiDCMD(sIn,TECs,TEXs,membrane,"cocurrent",opts);
-opStr = 'cooling';
+relDiffQ = 1;
+while abs(relDiffQ)>1e-8
+    % 逆流操作（因为通常逆流操作单位能耗更低）
+    [profile,~] = TEHPiDCMD(sIn,TECs,TEXs,membrane,"countercurrent",opts);
+    % % 并流操作
+    % [profile,~] = TEHPiDCMD(sIn,TECs,TEXs,membrane,"cocurrent",opts);
+    opStr = 'cooling';
 
-%% DCMD系统单位能耗
-switch config 
-    case('classical')
-        % 计算稳态操作回流比为R时料液放热量Q(1)和渗透液吸热量Q(2)
-        outTab.RR = refluxRatio;
-        [Q,QM,WF,WP,TP1,TP2] = CalcHeat(profile,refluxRatio);
-        % 计算膜组件外置半导体制冷功耗
-        opts = [1,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(15,1);
-        [E(2),QTEC,~,nTEC] = CalcTECPower(opStr,Q(2),TEXs(1),mean([TP1,TP2]),exTECs(1),opts);
-        outTab.QTEC = QTEC;
-        outTab.E2 = E(2);
-        outTab.NTEC = nTEC;
-        % 加热器功耗
-        E(1) = Q(1);
-        outTab.Q1 = Q(1);
-        outTab.E1 = E(1);
-        outTab.Q2 = Q(2);
-        % 计算系统总能耗
-        SEC = sum(E)/WP/3600/1000; % [kWh/kg]
-        outTab.SEC = SEC;
-    case('extTEHP') % 计算稳态操作全回流时料液放热量Q(1)和渗透液吸热量Q(2)
-        % 计算零回流时的料液加热所需热量
-        refluxRatio = 0;
-        [Q,QM,~,WP,TP1,TP2] = CalcHeat(profile,refluxRatio);
-        % 计算膜组件外置半导体制冷功耗
-        % opts = [0,1]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(18,1);
-        opts = [1,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(15,1);
-        % opts = [0,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(4,1);
-        [E(2),QTEC,~,nTEC] = CalcTECPower(opStr,Q(2),TEXs(1),mean([TP1,TP2]),exTECs(1),opts);
-        outTab.QTEC = QTEC;
-        outTab.E2 = E(2);
-        outTab.NTEC = nTEC;
-        % TEC向料液侧放热量
-        Q1 = E(2)+QTEC;
-        if Q1 > Q(1) 
-            warning('TEC放热量%.4g[W]大于料液加热所需最大热量%.4g[W]，建议提高W1！',Q1,Q(1))
-        end
-        outTab.Q1 = Q1;
-        outTab.E1 = 0; % 集成热泵时放热能耗为0
-        outTab.Q2 = Q(2);
-        % 计算料液侧加热量为Q1时的回流比
-        [RR,~,WF,~,~,~] = CalcReflux(profile,Q1);
-        outTab.RR = RR;
-        % 计算系统总能耗
-        SEC = sum(E)/WP/3600/1000; % [kWh/kg]
-        outTab.SEC = SEC;
-    case('feedTEHP')
-        % 计算零回流时的料液加热所需热量
-        refluxRatio = 0;
-        [Q,QM,WF,WP,TP1,TP2] = CalcHeat(profile,refluxRatio);
-        
+    %% DCMD系统单位能耗
+    switch config 
+        case('classical')
+            % 计算稳态操作回流比为R时料液放热量Q(1)和渗透液吸热量Q(2)
+            outTab.RR = refluxRatio;
+            [Q,QM,WF,WP,TP1,TP2] = CalcHeat(profile,refluxRatio);
+            % 计算膜组件外置半导体制冷功耗
+            opts = [1,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(15,1);
+            [E(2),QTEC,~,nTEC] = CalcTECPower(opStr,Q(2),TEXs(1),mean([TP1,TP2]),exTECs(1),opts);
+            outTab.QTEC = QTEC;
+            outTab.E2 = E(2);
+            outTab.NTEC = nTEC;
+            % 加热器功耗
+            E(1) = Q(1);
+            outTab.Q1 = Q(1);
+            outTab.E1 = E(1);
+            outTab.Q2 = Q(2);
+            % 计算系统总能耗
+            SEC = sum(E)/WP/3600/1000; % [kWh/kg]
+            outTab.SEC = SEC;
+            relDiffQ = 0;
+        case('extTEHP') % 计算稳态操作全回流时料液放热量Q(1)和渗透液吸热量Q(2)
+            % 计算零回流时的料液加热所需热量
+            refluxRatio = 0;
+            [Q,QM,~,WP,TP1,TP2] = CalcHeat(profile,refluxRatio);
+            % 计算膜组件外置半导体制冷功耗
+            % opts = [0,1]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(18,1);
+            opts = [1,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(15,1);
+            % opts = [0,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(4,1);
+            [E(2),QTEC,~,nTEC] = CalcTECPower(opStr,Q(2),TEXs(1),mean([TP1,TP2]),exTECs(1),opts);
+            outTab.QTEC = QTEC;
+            outTab.E2 = E(2);
+            outTab.NTEC = nTEC;
+            % TEC向料液侧放热量
+            Q1 = E(2)+QTEC;
+            if Q1 > Q(1) 
+                warning('TEC放热量%.4g[W]大于料液加热所需最大热量%.4g[W]，建议提高W1！',Q1,Q(1))
+            end
+            outTab.Q1 = Q1;
+            outTab.E1 = 0; % 集成热泵时放热能耗为0
+            outTab.Q2 = Q(2);
+            % 计算料液侧加热量为Q1时的回流比
+            [RR,~,WF,~,~,~] = CalcReflux(profile,Q1);
+            outTab.RR = RR;
+            % 计算系统总能耗
+            SEC = sum(E)/WP/3600/1000; % [kWh/kg]
+            outTab.SEC = SEC;
+            relDiffQ = 0;
+        case('feedTEHP')
+            % 计算零回流时的料液加热所需热量
+            refluxRatio = 0;
+            [Q,QM,~,WP,TP1,TP2,TF1,TF2,relDiffQ] = CalcHeat(profile,refluxRatio);
+            % 按渗透液吸热量计算TEC所需电功
+            [E(2),QTEC,~,nTEC,TECs(1)] = CalcTECPower(opStr,Q(2),mean([TF1,TF2]),mean([TP1,TP2]),TECs(1),opts);
+            if nTEC > 1
+                warning('DCMD膜组件集成的TEC功率不满足当前指定的进料温度和流率条件')
+            end
+            if abs(relDiffQ)>1e-8 % 修正TEC输入电功
+                msg = sprintf('TEC输入电流为%.4g[A]',TECs(1).Current);
+                fprintf('%s：渗透液冷却所需冷量%.4g[W]与TEC吸热量相对偏差为%.4g%%\n',msg,Q(2),relDiffQ*100);
+            else % 计算WF和R
+                [RR,QM,WF,WP,~,~] = CalcReflux(profile,Q(1));
+                outTab.QTEC = QTEC;
+                outTab.nTEC = nTEC;
+                outTab.Q1 = Q(1);
+                outTab.E1 = 0;
+                outTab.Q2 = Q(2);
+                outTab.E2 = E(2);
+                outTab.RR = RR;
+                % 计算系统总能耗
+                SEC = sum(E)/WP/3600/1000; % [kWh/kg]
+                outTab.SEC = SEC;
+            end
+    end
 end
 outTab.WF = WF;
 outTab.WP = WP;
