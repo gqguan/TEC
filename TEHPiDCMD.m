@@ -22,7 +22,7 @@ if nargin == 6
     [flag,msg] = ChkArgType({'struct','struct','double','struct','string','double'}, ...
         sIn,TECs,TEXs,membrane,flowPattern,opts);
     if flag
-        logger.trace('TEHPiDCMD',msg)
+%         logger.trace('TEHPiDCMD',msg)
     else
         logger.error('TEHPiDCMD',msg)
         return
