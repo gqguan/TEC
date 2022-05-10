@@ -57,7 +57,8 @@ function out = TE_ShowPerformance(Th,Tc,TEC,TECopts,opStr)
             error('TE_ShowPerformance()输入操作参数有误！')
     end
     
-    if showFig % 绘制不同吸热量时的制冷系数曲线
+    if showFig 
+        % 绘制不同吸热量时的制冷系数曲线
         current = linspace(0.12*solX1,2*solX1);
         Q2 = zeros(size(current)); E = zeros(size(current));
         for i = 1:length(current)
@@ -66,6 +67,7 @@ function out = TE_ShowPerformance(Th,Tc,TEC,TECopts,opStr)
         COP2 = Q2./E;
         xAxis = Q2;
         yAxis = COP2;
+        figure(1)
         plot(xAxis,yAxis)
         xlabel('Q_2 [W]')
         ylabel('COP_2')
