@@ -24,14 +24,14 @@ idxPath = strfind(homePath,'\');
 addpath([homePath(1:idxPath(2)),'Common\'])
 
 %% 模拟DCMD系统能耗情况
-% 采用4因素Box-Behnken设计
-dMat = bbdesign(4)+2; % 2是为了将三个水平代号[-1 0 1]转换为索引
-dMat = [ones(size(dMat,1),1),dMat];
-dMat = [dMat;[dMat(:,1)*2,dMat(:,2:end)]];
+% % 采用4因素Box-Behnken设计
+% dMat = bbdesign(4)+2; % 2是为了将三个水平代号[-1 0 1]转换为索引
+% dMat = [ones(size(dMat,1),1),dMat];
+% dMat = [dMat;[dMat(:,1)*2,dMat(:,2:end)]];
 % % 中心复合设计
 % dMat = ccdesign(4)+3; % 2是为了将5个水平代号[-2 -1 0 1 2]转换为索引
-% % 全因素设计
-% dMat = fullfact([2 3 3 3 3]);
+% 全因素设计
+dMat = fullfact([2 3 3 3 3]);
 nLvl = max(dMat);
 CFGLvls = {'classical','extTEHP'}; %  DCMD配置方案
 W1Lvls = linspace(1.217e-4*5,1.217e-2,nLvl(2)); %  料液侧膜组件进料流率 [kg/s] Re=10*5~1000
