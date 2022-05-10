@@ -25,6 +25,11 @@ function [E,Q,diffQ,nTEC,newTEC] = CalcTECPower(opStr,givenQ,Th,Tc,TEC,opts)
     switch opStr
         case('cooling')
             out = TE_ShowPerformance(Th,Tc,TEC,opts,'max.All');
+            if out.MaxQ2.Value < 0
+                msg = sprintf('TEC冷热温度分别为%.4g[K]和%.4g[K]，温差超过TEC正常制冷范围！', ...
+                    Th,Tc);
+                logger.warn('CalcTECPower',msg)
+            end
             if givenQ > out.MaxQ2.Value % 给定冷量大于TEC的最大制冷量
                 nTEC = ceil(givenQ/out.MaxCOP2.Q2); % 按当前冷热侧温度下最高制冷系数计算
                 fun1 = @(x)GetTECHeat(x,opStr,Th,Tc,TEC,opts)-givenQ/nTEC;

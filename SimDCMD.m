@@ -10,7 +10,7 @@ outTab = table;
 % WP = missing;
 % QM = missing;
 % 调用公用变量定义，其中包括DuctGeom（流道几何尺寸）、Stream（物料定义）、MembrProps（膜材料性质）
-[DuctGeom,Stream,MembrProps] = InitStruct();
+[~,Stream,MembrProps] = InitStruct();
 % 设定膜组件的热、冷侧进口温度和流率
 if ~exist('refluxRatio','var')
     refluxRatio = inf;
@@ -19,8 +19,8 @@ if ~exist('config','var')
     config = 'classical';
 end
 if nargin == 0
-    T1 = 318.15; T2 = 285.65; % [K]
-    W1 = 1.217e-4*5; W2 = 6.146e-3; % [kg/s]
+    T1 = 333.15; T2 = 278.15; % [K]
+    W1 = 1.217e-2; W2 = 6.389e-3; % [kg/s]
     refluxRatio = inf; % 全回流
     config = 'extTEHP'; 
 end
