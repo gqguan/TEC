@@ -19,35 +19,38 @@ function [E,Q,diffQ,nTEC,newTEC] = CalcTECPower(opStr,givenQ,Th,Tc,TEC,opts)
         opts = [1,0];
     end
     nTEC = 1;
+    strIU = {'Current','Voltage'};
+    strUnit = {'A','V'};
+    solOpts = optimoptions(@lsqnonlin,'Display','none');
     switch opStr
         case('cooling')
-            x0 = 2; lb = 0.1; ub = 25;
-            solOpts = optimoptions(@lsqnonlin, 'Display', 'none');
-            fun = @(x)GetTECHeat(x,opStr,Th,Tc,TEC,opts)-givenQ;
-            x1 = lsqnonlin(fun,x0,lb,ub,solOpts);
-            [Q,E] = GetTECHeat(x1,opStr,Th,Tc,TEC,opts);
-            strIU = {'Current','Voltage'};
-            strUnit = {'A','V'};
-            diffQ = fun(x1);
-            if diffQ < -1e-2 % TEC功率不满足需要
-                % 用nTEC个TEC并联传热
-                nTEC = ceil(givenQ/Q);
+            out = TE_ShowPerformance(Th,Tc,TEC,opts,'max.All');
+            if givenQ > out.MaxQ2.Value % 给定冷量大于TEC的最大制冷量
+                nTEC = ceil(givenQ/out.MaxCOP2.Q2); % 按当前冷热侧温度下最高制冷系数计算
                 fun1 = @(x)GetTECHeat(x,opStr,Th,Tc,TEC,opts)-givenQ/nTEC;
-                x2 = lsqnonlin(fun1,x0,lb,ub,solOpts);
-                [Q,E] = GetTECHeat(x2,opStr,Th,Tc,TEC,opts);
+                x0 = out.MaxCOP2.(strIU{opts(2)+1});
+                lb = 0.5; ub = 10;
+                x1 = lsqnonlin(fun1,x0,lb,ub,solOpts);
+                [Q,E] = GetTECHeat(x1,opStr,Th,Tc,TEC,opts);
                 msg = sprintf('给定传热量%.4g[W]大于TEC能力%.4g[W]！采用%d个TEC并联传热，每个TEC输入%s为%.4g[%s]，%s传热量为%.4g[W]，输入电功%.4g[W]\n', ...
-                    givenQ,Q,nTEC,strIU{opts(2)+1},x2,strUnit{opts(2)+1},opStr,Q,E);
+                    givenQ,Q,nTEC,strIU{opts(2)+1},x1,strUnit{opts(2)+1},opStr,Q,E);
                 logger.info('CalcTECPower',msg)
                 Q = Q*nTEC;
                 E = E*nTEC;
                 diffQ = Q-givenQ;
-%                 TE_ShowPerformance(Th,Tc,TEC,opts)
+                xOut = x1;
             else
-                x2 = x1;
+                fun2 = @(x)GetTECHeat(x,opStr,Th,Tc,TEC,opts)-givenQ;
+                x0 = out.MaxCOP2.(strIU{opts(2)+1});
+                lb = 0.5; ub = 10;
+                x2 = lsqnonlin(fun2,x0,lb,ub,solOpts);
+                [Q,E] = GetTECHeat(x2,opStr,Th,Tc,TEC,opts);
+                diffQ = Q-givenQ;
+                xOut = x2;
             end
             % 代入求得的TEC设定参数
             newTEC = TEC;
-            newTEC.(strIU{opts(2)+1}) = x2;
+            newTEC.(strIU{opts(2)+1}) = xOut;
         case('heating')
         otherwise
             logger.error('CalcTECPower','输入参数opStr内容与预设不符！')
