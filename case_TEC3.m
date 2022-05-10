@@ -8,7 +8,12 @@ if exist('TEC','var') % 使用工作空间中的TEC参数
     fprintf('使用当前工作空间中的TEC参数\n')
 else % 存盘文件中的TEC参数
     load('TEC_Params.mat','TEC_Params')
+%     opts = [1,0]; TEC = TEC_Params.TEC(4);
+%     opts = [1,0]; TEC = TEC_Params.TEC(6);
+%     opts = [1,0]; TEC = TEC_Params.TEC(8);
+%     opts = [1,0]; TEC = TEC_Params.TEC(13);
     opts = [1,0]; TEC = TEC_Params.TEC(15);
+%     opts = [1,0]; TEC = TEC_Params.TEC(18);
 end
 % 初值
 nGrid = 50;
