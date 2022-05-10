@@ -1,37 +1,55 @@
-function maxQ2 = TE_ShowPerformance(Th,Tc,TEC,TECopts,silenceOrNot)
+function out = TE_ShowPerformance(Th,Tc,TEC,TECopts,opStr)
     % 日志文件
     logFilename = [cd,'\',datestr(datetime,'yyyymmdd'),'.log'];
     logger = log4m.getLogger(logFilename);
     logger.setFilename(logFilename);
     % 初始化
-    if ~exist('silenceOrNot','var')
-        silenceOrNot = true;
+    if ~exist('opStr','var')
+        opStr = 'silence';
     end
     % 函数调试用
     if nargin == 0
-        Th = 298.15; % [K]
-        Tc = 278.15; % [K]
+        Th = 273.15+45; % [K]
+        Tc = 273.15+5; % [K]
         load('TEC_Params.mat', 'TEC_Params')
         TEC = TEC_Params.TEC(14,:);
         TECopts = [1,0];
-        silenceOrNot = false;
+        opStr = 'max.COP2';
     end
     % 设定电流范围
     lb = 0.5; ub = 10; % 电流范围0.5~10[A]
     % 计算最大吸热量
-    fun = @(x)-GetTECHeat(x,'cooling',Th,Tc,TEC,TECopts); % 负值求最小即求最大吸热量
+    fun1 = @(x1)-GetTECHeat(x1,'cooling',Th,Tc,TEC,TECopts); % 负值求最小即求最大吸热量
     solOpts = optimset('Display','none');
-    x1 = fminbnd(fun,lb,ub,solOpts);
-    maxQ2 = -fun(x1);
+    solX1 = fminbnd(fun1,lb,ub,solOpts);
+    
+    % 计算最大制冷系数
+    fun2 = @(x2)-MaxCOP(x2,'cooling',Th,Tc,TEC,TECopts);
+    solX2 = fminbnd(fun2,0.12*solX1,2*solX1,solOpts);
     % 输出
-    if silenceOrNot
-        return
+    msg = sprintf('在TEC片冷热侧温度分别为%.2f[K]和%.2f[K]',Th,Tc);
+    switch opStr 
+        case 'silence'
+            out = [];
+            return
+        case 'max.Q2'
+            out = -fun1(solX1);
+            msg = sprintf('%s，输入电流为%.4g[A]时吸热量达最大值%.4g[W]', ...
+                msg,solX1,out);
+            logger.trace('TE_ShowPerformance',msg)
+        case 'max.COP2'
+            out = -fun2(solX2);
+            msg = sprintf('%s，输入电流为%.4g[A]时制冷系数达最大值%.4g', ...
+                msg,solX2,out);
+            logger.trace('TE_ShowPerformance',msg)
+        case 'max.All'
+            out = [-fun1(solX1),-fun2(solX2)];
+        otherwise
+            error('TE_ShowPerformance()输入操作参数有误！')
     end
-    msg = sprintf('在TEC片冷热侧温度分别为%.2f[K]和%.2f[K]，输入电流为%.4g[A]时吸热量达最大值%.4g[W]', ...
-        Th,Tc,x1,maxQ2);
-    logger.trace('TE_ShowPerformance',msg)
+
     % 绘制不同吸热量时的制冷系数曲线
-    current = linspace(0.2*x1,2*x1);
+    current = linspace(0.12*solX1,2*solX1);
     Q2 = zeros(size(current)); E = zeros(size(current));
     for i = 1:length(current)
         [Q2(i),E(i)] = GetTECHeat(current(i),'cooling',Th,Tc,TEC,TECopts);
@@ -45,3 +63,9 @@ function maxQ2 = TE_ShowPerformance(Th,Tc,TEC,TECopts,silenceOrNot)
     titleStr = sprintf('TEC片冷热侧温度分别为%.2f[K]和%.2f[K]，输入电流：%.4g~%.4g[A]', ...
         Th,Tc,current(1),current(end));
     title(titleStr)
+    
+    function COP = MaxCOP(inArg,opStr,Th,Tc,TEC,TECopts)
+        [heat,power] = GetTECHeat(inArg,opStr,Th,Tc,TEC,TECopts);
+        COP = heat/power;
+    end
+end
