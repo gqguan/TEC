@@ -3,7 +3,7 @@
 %
 % by Dr. Guan Guoqiang @ SCUT on 2022/5/12
 
-function TECs = CalcTEHP(config,Q,sIn,TECs,TEXs,membrane,flowPattern,opts)
+function [TECs,profile] = CalcTEHP(config,Q,sIn,TECs,TEXs,membrane,flowPattern,opts)
 
     % 添加\Common目录以便调用自定义公用函数
     homePath = cd;
@@ -52,10 +52,11 @@ function TECs = CalcTEHP(config,Q,sIn,TECs,TEXs,membrane,flowPattern,opts)
             % 求TEC设定参数使min(TEC吸热量-指定值Q)
             x1 = lsqnonlin(DiffQ2,x0,lb,ub,solOpts);
             TECs(1).(strIU{opts(2)+1}) = x1;
+            [~,profile] = CalcQ2(x1,sIn,TECs,TEXs,membrane,flowPattern,opts);
         case 'permTEHP'
     end
 
-    function Q2 = CalcQ2(xVal,sIn,TECs,TEXs,membrane,flowPattern,opts)
+    function [Q2,profile] = CalcQ2(xVal,sIn,TECs,TEXs,membrane,flowPattern,opts)
         % 根据opts(2)设定TECs(1)
         TECs(1).(strIU{opts(2)+1}) = xVal;
         % 计算集成半导体热泵DCMD膜组件中的侧形
