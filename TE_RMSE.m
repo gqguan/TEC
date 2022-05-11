@@ -1,13 +1,16 @@
-function [ RMSE, output ] = TE_RMSE( x, TEC, ExpData, opt )
+function [ RMSE, output ] = TE_RMSE( x, TEC, ExpData, opt1, opt2 )
 %% calculate the RMSE between predicted and experimental results
 %  notes of I/O arguments
 %  x       - (i double array) [NumRatio GeomFactor] of thermocouples
 %  TEC     - (i structure) initial parameters of thermocouples,
 %                          ref. to "TE_ImportExpData.m"
 %  ExpData - (i table) experimental results, ref. to "TE_ImportExpData.m"
-%  opt     - (i integer scalar) optional running mode
+%  opt1    - (i integer scalar) optional running mode
 %            = 0 (default): 按参考文献[1]计算吸放热量
 %            = 1          : 按参考文献[2]计算吸放热量
+%  opt2    - (i integer scalar) TEC调节方式
+%            = 0 (default): 按电流设定TEC
+%            = 1          : 按电压设定TEC
 %  RMSE    - (o double scalar) RMSE
 %  output  - (o structure) .TEC: output TEC parameters
 %                          .results: list results of exp. vs sim.
@@ -22,11 +25,19 @@ function [ RMSE, output ] = TE_RMSE( x, TEC, ExpData, opt )
 % initialize
 % 运行模式参数设定
 switch nargin
-    case(3) % 函数调用时不输入opt
-        opt = 0;
+    case(3) % 函数调用时不输入opt1和opt2
+        opt1 = 0;
+        opt2 = 0;
     case(4)
-        if opt ~= 0 && opt ~= 1
-            prompt = sprintf('Unknown specified running mode of %d for TE_RMSE()', opt);
+        if opt1 ~= 0 && opt1 ~= 1
+            prompt = sprintf('Unknown specified running mode of %d for TE_RMSE()', opt1);
+            TE_log(prompt, 1);
+            return
+        end
+        opt2 = 0;
+    case(5)
+        if opt2 ~= 0 && opt2 ~= 1
+            prompt = sprintf('TE_RMSE()输入参数opt2与预设不符', opt2);
             TE_log(prompt, 1);
             return
         end
@@ -34,7 +45,7 @@ end
 %
 QH  = zeros(size(ExpData.QH));
 QC  = zeros(size(ExpData.QC));
-switch opt
+switch opt1
     case(0)
         % reset TEC according to the given x
         switch length(x)
@@ -49,12 +60,6 @@ switch opt
                 TEC.HTCoefficient = x(3);
         end
     case(1) % TEC参数为定值
-%         if length(x) ~= 3
-%             prompt = sprintf('Incorrect Length(x) = %d', length(x));
-%             TE_log(prompt, 1);
-%             return
-%         end
-        % reset TEC parameters
         TEC.Parameters = x;
 end
 %
@@ -79,7 +84,7 @@ for i = 1: NumExpData
     TEC.Voltage = ExpData.U(i);
     TEC.Current = ExpData.I(i);
     % 计算TEC吸放热量
-    [Q, TEC] = TE_Heat(TH, TC, TEC, opt, 1); % TH_Heat()最后一个参数为1表示按输入电压计算吸放热量
+    [Q, TEC] = TE_Heat(TH, TC, TEC, opt1, opt2);
     QH(i) = Q(1);
     QC(i) = Q(2);
 %     COP(i) = QC(i)./(QH(i)-QC(i));
@@ -93,9 +98,3 @@ tabout = [tabout,table(QC, 'VariableNames', {'QC_SIM'})];
 output.results = tabout;
 RMSE = sqrt(sum(((tabout.QH_EXP-tabout.QH_SIM)./tabout.QH_EXP).^2 + ...
                 ((tabout.QC_EXP-tabout.QC_SIM)./tabout.QC_EXP).^2));
-% COP_exp = ExpData.QC./(ExpData.QH-ExpData.QC);
-% RMSE = MVA_diff(ExpData.QH, QH, 'RMSE')/mean(ExpData.QH) ...
-%       +MVA_diff(ExpData.QC, QC, 'RMSE')/mean(ExpData.QC);
-% RMSE = MVA_diff(ExpData.QH, QH, 'RMSE');
-%
-end
