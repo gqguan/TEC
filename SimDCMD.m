@@ -22,7 +22,7 @@ if nargin == 0
     T1 = 273.15+50; T2 = 273.15+45; % [K]
     W1 = 1.217e-2; W2 = 6.389e-3; % [kg/s]
     refluxRatio = inf; % 全回流
-    config = 'feedTEHP'; 
+    config = 'classical'; 
 end
 % 设定集成TEC多级SFMD系统的级数
 NumStage = 1;
@@ -45,10 +45,7 @@ sIn(2) = DCMD_PackStream(s2);
 membrane = MembrProps;
 % set properties for all TECs
 load('TEC_Params.mat','TEC_Params') % 载入已有的TEC计算参数
-% 注意按opt1=0,opt2=1计算TEC的吸放热量
-% opts = [0,1]; TECs(1:(NumStage+1)) = TEC_Params.TEC(18,1);
-% opts = [1,0]; TECs(1:(NumStage+1)) = TEC_Params.TEC(14,1);
-% opts = [0,0]; TECs(1:(NumStage+1)) = TEC_Params.TEC(4,1);
+
 switch config
     case {'classical','extTEHP'} % 相当于未集成半导体热泵的DCMD膜组件
         iTEC1 = 1;
@@ -67,8 +64,8 @@ end
 
 
 %% 计算集成热泵DCMD膜组件中的温度分布
-relDiffQ = 1;
-while abs(relDiffQ)>1e-8
+diffTF2 = 1;
+while abs(diffTF2)>1e-8
     % 逆流操作（因为通常逆流操作单位能耗更低）
     [profile,~] = TEHPiDCMD(sIn,TECs,TEXs,membrane,"countercurrent",opts);
     % % 并流操作
@@ -82,7 +79,9 @@ while abs(relDiffQ)>1e-8
             outTab.RR = refluxRatio;
             [Q,QM,WF,WP,TP1,TP2] = CalcHeat(profile,refluxRatio);
             % 计算膜组件外置半导体制冷功耗
-            opts = [1,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(15,1);
+            iTEC1 = 9;
+            exTECs(1) = TEC_Params.TEC(iTEC1);
+            opts = [TEC_Params.opt1(iTEC1),TEC_Params.opt2(iTEC1)];
             [E(2),QTEC,~,nTEC] = CalcTECPower(opStr,Q(2),TEXs(1),mean([TP1,TP2]),exTECs(1),opts);
             outTab.QTEC = QTEC;
             outTab.E2 = E(2);
@@ -95,7 +94,7 @@ while abs(relDiffQ)>1e-8
             % 计算系统总能耗
             SEC = sum(E)/WP/3600/1000; % [kWh/kg]
             outTab.SEC = SEC;
-            relDiffQ = 0;
+            diffTF2 = 0;
         case('extTEHP') % 计算稳态操作全回流时料液放热量Q(1)和渗透液吸热量Q(2)
             % 计算零回流时的料液加热所需热量Q(1)及渗透液冷却所需冷量Q(2)
             refluxRatio = 0;
@@ -139,27 +138,24 @@ while abs(relDiffQ)>1e-8
             % 计算系统总能耗
             SEC = sum(E)/WP/3600/1000; % [kWh/kg]
             outTab.SEC = SEC;
-            relDiffQ = 0;
+            diffTF2 = 0;
         case('feedTEHP')
             % 计算零回流时的料液加热所需热量
             refluxRatio = 0;
-            [Q,QM,~,WP,TP1,TP2,TF1,TF2,relDiffQ] = CalcHeat(profile,refluxRatio);
+            [Q,QM,~,WP,TP1,TP2,TF1,TF2,~] = CalcHeat(profile,refluxRatio);
             TH = mean([TF1,TF2]);
             TC = mean([TP1,TP2]);
             TEXs(1) = TC;
             % 按渗透液吸热量计算DCMD膜组件料液侧集成半导体热泵所需电功
-            CalcTEHP(config,sIn,TECs,TEXs,membrane,"countercurrent",opts);
-            [E(2),QTEC,~,nTEC,TECs(1)] = CalcTECPower(opStr,Q(2),TH,TC,TECs(1),opts);
-            if nTEC > 1
-                warning('DCMD膜组件集成的TEC功率不满足当前指定的进料温度和流率条件')
-            end
-            if abs(relDiffQ)>1e-8 % 修正TEC输入电功
-                msg = sprintf('TEC输入电流为%.4g[A]',TECs(1).Current);
-                fprintf('%s：渗透液冷却所需冷量%.4g[W]与TEC吸热量相对偏差为%.4g%%\n',msg,Q(2),relDiffQ*100);
-            else % 计算WF和R
-                [RR,QM,WF,WP,~,~] = CalcReflux(profile,Q(1));
+            [TECs,profile1] = CalcTEHP(config,Q(2),sIn,TECs,TEXs,membrane,"countercurrent",opts);
+            diffTF2 = profile1.S1(end).Temp-profile.S1(end).Temp;
+            if abs(diffTF2) < 1e-8
+                % 计算WF和R
+                [RR,QM,WF,WP,~,~] = CalcReflux(profile1,Q(1));
+                QTEC = sum(cellfun(@(x)x(1,2),profile1.QTEC));
+                E(2) = sum(cellfun(@(x)x(1,1),profile1.QTEC))-QTEC;
                 outTab.QTEC = QTEC;
-                outTab.nTEC = nTEC;
+                outTab.NTEC = 1;
                 outTab.Q1 = Q(1);
                 outTab.E1 = 0;
                 outTab.Q2 = Q(2);
@@ -167,8 +163,32 @@ while abs(relDiffQ)>1e-8
                 outTab.RR = RR;
                 % 计算系统总能耗
                 SEC = sum(E)/WP/3600/1000; % [kWh/kg]
-                outTab.SEC = SEC;
+                outTab.SEC = SEC; 
+                break
+            else
+                fprintf('diffTF2 = %.4g[K]\n',diffTF2);
             end
+
+
+%             if nTEC > 1
+%                 warning('DCMD膜组件集成的TEC功率不满足当前指定的进料温度和流率条件')
+%             end
+%             if abs(relDiffQ)>1e-8 % 修正TEC输入电功
+%                 msg = sprintf('TEC输入电流为%.4g[A]',TECs(1).Current);
+%                 fprintf('%s：渗透液冷却所需冷量%.4g[W]与TEC吸热量相对偏差为%.4g%%\n',msg,Q(2),relDiffQ*100);
+%             else % 计算WF和R
+%                 [RR,QM,WF,WP,~,~] = CalcReflux(profile,Q(1));
+%                 outTab.QTEC = QTEC;
+%                 outTab.nTEC = nTEC;
+%                 outTab.Q1 = Q(1);
+%                 outTab.E1 = 0;
+%                 outTab.Q2 = Q(2);
+%                 outTab.E2 = E(2);
+%                 outTab.RR = RR;
+%                 % 计算系统总能耗
+%                 SEC = sum(E)/WP/3600/1000; % [kWh/kg]
+%                 outTab.SEC = SEC;
+%             end
     end
 end
 outTab.WF = WF;
