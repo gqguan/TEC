@@ -22,7 +22,7 @@ if nargin == 0
     T1 = 273.15+50; T2 = 273.15+45; % [K]
     W1 = 1.217e-2; W2 = 6.389e-3; % [kg/s]
     refluxRatio = inf; % 全回流
-    config = 'classical'; 
+    config = 'feedTEHP'; 
 end
 % 设定集成TEC多级SFMD系统的级数
 NumStage = 1;
@@ -142,7 +142,7 @@ while abs(diffTF2)>1e-8
         case('feedTEHP')
             % 计算零回流时的料液加热所需热量
             refluxRatio = 0;
-            [Q,QM,~,WP,TP1,TP2,TF1,TF2,~] = CalcHeat(profile,refluxRatio);
+            [Q,QM,~,WP,TP1,TP2,TF1,TF2,~] = CalcHeat(profile,refluxRatio,config);
             TH = mean([TF1,TF2]);
             TC = mean([TP1,TP2]);
             TEXs(1) = TC;
