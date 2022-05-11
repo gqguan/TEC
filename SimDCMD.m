@@ -19,10 +19,10 @@ if ~exist('config','var')
     config = 'classical';
 end
 if nargin == 0
-    T1 = 273.15+65; T2 = 273.15+30; % [K]
+    T1 = 273.15+50; T2 = 273.15+45; % [K]
     W1 = 1.217e-2; W2 = 6.389e-3; % [kg/s]
     refluxRatio = inf; % 全回流
-    config = 'extTEHP'; 
+    config = 'feedTEHP'; 
 end
 % 设定集成TEC多级SFMD系统的级数
 NumStage = 1;
@@ -54,12 +54,13 @@ switch config
         iTEC1 = 1;
         TECs(1:2) = TEC_Params.TEC(iTEC1);
         opts = [TEC_Params.opt1(iTEC1),TEC_Params.opt2(iTEC1)];
-    case {'feedTEHP'} % 集成半导体热泵的DCMD膜组件
+    case {'feedTEHP'} % DCMD膜组件料液侧集成半导体热泵
         iTEC1 = 9;
         TECs(1) = TEC_Params.TEC(iTEC1);
         opts = [TEC_Params.opt1(iTEC1),TEC_Params.opt2(iTEC1)];
         iTEC2 = 1; % 近似绝热
         TECs(2) = TEC_Params.TEC(iTEC2); 
+        TEXs(1) = T2; % 即TECs(1)的冷侧温度初设为渗透液进膜组件温度
     otherwise
         error('SimDCMD()中输入参数config无法识别！')
 end
@@ -143,8 +144,12 @@ while abs(relDiffQ)>1e-8
             % 计算零回流时的料液加热所需热量
             refluxRatio = 0;
             [Q,QM,~,WP,TP1,TP2,TF1,TF2,relDiffQ] = CalcHeat(profile,refluxRatio);
-            % 按渗透液吸热量计算TEC所需电功
-            [E(2),QTEC,~,nTEC,TECs(1)] = CalcTECPower(opStr,Q(2),mean([TF1,TF2]),mean([TP1,TP2]),TECs(1),opts);
+            TH = mean([TF1,TF2]);
+            TC = mean([TP1,TP2]);
+            TEXs(1) = TC;
+            % 按渗透液吸热量计算DCMD膜组件料液侧集成半导体热泵所需电功
+            CalcTEHP(config,sIn,TECs,TEXs,membrane,"countercurrent",opts);
+            [E(2),QTEC,~,nTEC,TECs(1)] = CalcTECPower(opStr,Q(2),TH,TC,TECs(1),opts);
             if nTEC > 1
                 warning('DCMD膜组件集成的TEC功率不满足当前指定的进料温度和流率条件')
             end
@@ -181,43 +186,5 @@ outTab = outTab(:,sortedColI);
 % fprintf('DCMD系统产水率为%.4g[kg/h]，加热消耗能量%.4g[W]，冷却消耗能量%.4g[W]，单位能耗为%.4g[kWh/kg]\n',WP*3600,E(1),E(2),SEC)
 % DispResults(profile,DuctGeom,membrane);
 % figObj2 = DispResults(profile2,DuctGeom,membrane);
-
-function [DuctGeom,Stream,MembrProps] = InitStruct()
-    % 定义模组件流道几何尺寸
-    %  DuctGeom - geometric parameters of flowing channel in MD module
-    %           .Length (real array(2)) length along the flowing direction in 
-    %                                   both sides of MD module [m]
-    %           .Height (real array(2)) height of rectanglarly wetted perimeter
-    %                                   in both sides of MD module [m]
-    %           .Width (real array(2))  width of rectanglarly wetted perimeter
-    %                                   in both sides of MD module [m]
-    DuctGeom = struct('Length', 0.04,  ...
-                     'Height', 0.006, ...
-                     'Width',  0.04 );
-    % 定义物料数据结构
-    Stream = struct('Temp', 295.15,  ...
-                    'MassFlow', 0.015,  ...
-                    'MassFraction', 0,  ...
-                    'Density', 1e3,     ...
-                    'Viscosity', 1e-3,  ...
-                    'SpecHeat', 4.18e3, ...
-                    'ThermCond', 0.6);
-    % 定义膜材料性质
-    %  MembrProps.TMH: hot-side temperature of membrane [K]
-    %            .TMC: cold-side temperature of membrane [K]
-    %            .Area: effective area of membrane [m2]
-    %            .Thickness: thickness of membrane [m]
-    %            .MDCoefficient: MD coefficient [kg/s-m2-Pa]
-    %            .ThermConductivity: thermal conductivity of membrane
-    MembrProps = struct('TMH', [], 'TMC', [], 'Area', 0.0016, ...
-                        'Thickness', 1.5e-4, 'MDCoefficient', 3.2e-7, ...
-                        'ThermConductivity', (0.18*0.3+0.025*0.7));
-end
-
-
-
-
-
-
 
 end
