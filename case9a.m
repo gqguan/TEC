@@ -60,4 +60,4 @@ close(hbar);
 
 %% 后处理
 % 响应面分析
-Postprocess(results);
+Postprocess(results,'plotBar');
