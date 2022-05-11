@@ -87,17 +87,20 @@ end
 output.pid = input('Input TEC part no.: ', 's');
 % 参数优化方法
 output.opt = opt;
-% 日志
-global TE_LogData
-output.log = TE_LogData;
-% 构造表
-current_tab = struct2table(output, 'AsArray', 1);
-% 当前目录存在TEC参数文件时载入表TEC_Params
-if exist('TEC_Params.mat', 'file') == 2
-    load('TEC_Params.mat')
-    TEC_Params = [TEC_Params;current_tab];
-else
-    TEC_Params = current_tab;
+saveOrNot = input('是否保存当前TEC参数到TEC_Params.mat：（输入1-保存，其他数值为放弃保存）');
+if saveOrNot == 1
+    % 日志
+    global TE_LogData
+    output.log = TE_LogData;
+    % 构造表
+    current_tab = struct2table(output, 'AsArray', 1);
+    % 当前目录存在TEC参数文件时载入表TEC_Params
+    if exist('TEC_Params.mat', 'file') == 2
+        load('TEC_Params.mat')
+        TEC_Params = [TEC_Params;current_tab];
+    else
+        TEC_Params = current_tab;
+    end
 end
 % 结果存盘
 save('TEC_Params.mat', 'TEC_Params')
