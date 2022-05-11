@@ -19,7 +19,7 @@ if ~exist('config','var')
     config = 'classical';
 end
 if nargin == 0
-    T1 = 333.15; T2 = 278.15; % [K]
+    T1 = 273.15+65; T2 = 273.15+30; % [K]
     W1 = 1.217e-2; W2 = 6.389e-3; % [kg/s]
     refluxRatio = inf; % 全回流
     config = 'extTEHP'; 
@@ -51,11 +51,15 @@ load('TEC_Params.mat','TEC_Params') % 载入已有的TEC计算参数
 % opts = [0,0]; TECs(1:(NumStage+1)) = TEC_Params.TEC(4,1);
 switch config
     case {'classical','extTEHP'} % 相当于未集成半导体热泵的DCMD膜组件
-        opts = [0,0]; TECs(1:(NumStage+1)) = TEC_Params.TEC(1,1); % 近似绝热
+        iTEC1 = 1;
+        TECs(1:2) = TEC_Params.TEC(iTEC1);
+        opts = [TEC_Params.opt1(iTEC1),TEC_Params.opt2(iTEC1)];
     case {'feedTEHP'} % 集成半导体热泵的DCMD膜组件
-        opts = [1,0]; TECs(1) = TEC_Params.TEC(15,1); % H27（RMSE=0.855）
-        TECs(1).Current = 1.2;
-        TECs(NumStage+1) = TEC_Params.TEC(2,1); % 近似绝热
+        iTEC1 = 9;
+        TECs(1) = TEC_Params.TEC(iTEC1);
+        opts = [TEC_Params.opt1(iTEC1),TEC_Params.opt2(iTEC1)];
+        iTEC2 = 1; % 近似绝热
+        TECs(2) = TEC_Params.TEC(iTEC2); 
     otherwise
         error('SimDCMD()中输入参数config无法识别！')
 end
@@ -96,9 +100,9 @@ while abs(relDiffQ)>1e-8
             refluxRatio = 0;
             [Q,QM,WF,WP,TP1,TP2,TF1,TF2] = CalcHeat(profile,refluxRatio);
             % 计算膜组件外置半导体制冷功耗
-            % opts = [0,1]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(18,1);
-            opts = [1,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(15,1);
-            % opts = [0,0]; exTECs(1:(NumStage+1)) = TEC_Params.TEC(4,1);
+            iTEC1 = 9;
+            exTECs(1) = TEC_Params.TEC(iTEC1);
+            opts = [TEC_Params.opt1(iTEC1),TEC_Params.opt2(iTEC1)];
             % 膜组件外集成TEC的冷热侧温度
             WR1 = refluxRatio*(WF-WP);
             TF0 = (WR1*TF2+WF*T0)/W1;
