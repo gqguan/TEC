@@ -35,9 +35,9 @@ dMat = fullfact([2 3 3 3 3]);
 nLvl = max(dMat);
 CFGLvls = {'classical','extTEHP'}; %  DCMD配置方案
 W1Lvls = linspace(1.217e-4*5,1.217e-2,nLvl(2)); %  料液侧膜组件进料流率 [kg/s] Re=10*5~1000
-T1Lvls = linspace(273.15+45,273.15+60,nLvl(3)); % 料液侧膜组件进料温度 [K]
+T1Lvls = linspace(273.15+50,273.15+65,nLvl(3)); % 料液侧膜组件进料温度 [K]
 W2Lvls = linspace(1.217e-4*5,1.217e-2,nLvl(4)); % 渗透侧膜组件进料流率 [kg/s] Re=10*5~1000
-T2Lvls = linspace(273.15+5,273.15+20,nLvl(5)); % 渗透侧膜组件进料温度 [K]
+T2Lvls = linspace(273.15+30,273.15+45,nLvl(5)); % 渗透侧膜组件进料温度 [K]
 results = table;
 % 实验条件
 RR = inf; % 回流比
