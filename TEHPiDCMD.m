@@ -32,7 +32,7 @@ if nargin == 6
     idxArg = ([length(sIn),length(TECs),length(TEXs),length(membrane), ...
         length(flowPattern),length(opts)] ~= lenArgs);
     if any(idxArg)
-        prompt = sprintf('第%d个输入参数尺寸应为%d',find(idx,1),lenArgs(find(idx,1)));
+        prompt = sprintf('第%d个输入参数尺寸应为%d',find(idxArg,1),lenArgs(find(idxArg,1)));
         logger.error('TEHPiDCMD',prompt)
         return
     end
