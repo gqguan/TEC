@@ -105,8 +105,8 @@ switch flowPattern
                 nInteration = nInteration+1;
             else
                 interativeOPT = false;
-                msg = sprintf('逆流计算迭代次数%d',nInteration);
-                logger.trace('TEHPiDCMD',msg)
+%                 msg = sprintf('逆流计算迭代次数%d',nInteration);
+%                 logger.trace('TEHPiDCMD',msg)
             end
         end
     otherwise
