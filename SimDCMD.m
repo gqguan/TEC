@@ -19,7 +19,7 @@ if ~exist('config','var')
     config = 'classical';
 end
 if nargin == 0
-    T1 = 273.15+65; T2 = 273.15+30; % [K]
+    T1 = 273.15+50; T2 = 273.15+45; % [K]
     W1 = 1.217e-2; W2 = 6.389e-3; % [kg/s]
     refluxRatio = inf; % 全回流
     config = 'feedTEHP'; 
@@ -146,9 +146,11 @@ while abs(dT2)>1e-8
             outTab.SEC = SEC;
             dT2 = 0;
         case('feedTEHP')
-            % 计算零回流时的料液加热所需热量
-            refluxRatio = 0;
-            [Q,QM,~,WP,TP1,TP2,~,TF2,dQ2] = CalcHeat(profile,refluxRatio,config);
+            % 按TEC(1)的放热量计算料液回流比
+            Q1 = sum(cellfun(@(x)x(1,1),profile.QTEC));
+            [RR,~,~,~,~,~] = CalcReflux(profile,Q1);
+            % 计算TEC(1)冷侧温度TC
+            [Q,QM,WF,WP,TP1,TP2,~,TF2,dQ2] = CalcHeat(profile,RR,config);
             TC = mean([TP1,TP2]);
             TEXs(1) = TC;
             % 按渗透液吸热量计算DCMD膜组件料液侧集成半导体热泵所需电功
@@ -163,8 +165,6 @@ while abs(dT2)>1e-8
             end
             dT2 = max(abs([dTF2,dTP2]));
             if dT2 < 1e-8
-                % 计算WF和R
-                [RR,QM,WF,WP,~,~] = CalcReflux(profile1,Q(1));
                 Q2TEC = sum(cellfun(@(x)x(1,2),profile1.QTEC));
                 E(2) = sum(cellfun(@(x)x(1,1),profile1.QTEC))-Q2TEC;
                 outTab.QTEC = Q2TEC;
