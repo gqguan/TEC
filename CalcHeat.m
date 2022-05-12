@@ -42,6 +42,8 @@ function [Q,QM,WF,WP,TP1,TP2,TF1,TF2,dQ2] = CalcHeat(profile,R,cfg)
                 Q(1) = (QM*T0 + QM*R*TF2 - T0*TF1*W1*cp1 + TF1*TF2*W1*cp1 - T0*TF2*WP*cp1 + T0*TMF*WP*cp1 - R*T0*TF2*WP*cp1 + R*TF2*TMF*WP*cp1)/(TF2 + R*TF2);
             case 'feedTEHP'
                 Q(1) = (W1-WP)*cp1*TF2+WP*cp1*TMF+QM-W1*cp1*TF1;
+            case 'permTEHP'
+                Q(1) = QM+WP*cp1*(TMF-T0);
         end
         WF = (W1+R*WP)/(1+R);
     end
