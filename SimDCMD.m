@@ -19,10 +19,10 @@ if ~exist('config','var')
     config = 'classical';
 end
 if nargin == 0
-    T1 = 273.15+50; T2 = 273.15+45; % [K]
+    T1 = 273.15+65; T2 = 273.15+30; % [K]
     W1 = 1.217e-2; W2 = 6.389e-3; % [kg/s]
     refluxRatio = inf; % 全回流
-    config = 'permTEHP'; 
+    config = 'feedTEHP'; 
 end
 
 % 设定环境温度
@@ -70,8 +70,8 @@ end
 
 
 %% 计算集成热泵DCMD膜组件中的温度分布
-dTF2 = 1;
-while abs(dTF2)>1e-8
+dT2 = 1;
+while abs(dT2)>1e-8
     % 逆流操作（因为通常逆流操作单位能耗更低）
     [profile,~] = TEHPiDCMD(sIn,TECs,TEXs,membrane,"countercurrent",opts);
     % % 并流操作
@@ -100,7 +100,7 @@ while abs(dTF2)>1e-8
             % 计算系统总能耗
             SEC = sum(E)/WP/3600/1000; % [kWh/kg]
             outTab.SEC = SEC;
-            dTF2 = 0;
+            dT2 = 0;
         case('extTEHP') % 计算稳态操作全回流时料液放热量Q(1)和渗透液吸热量Q(2)
             % 计算零回流时的料液加热所需热量Q(1)及渗透液冷却所需冷量Q(2)
             refluxRatio = 0;
@@ -144,7 +144,7 @@ while abs(dTF2)>1e-8
             % 计算系统总能耗
             SEC = sum(E)/WP/3600/1000; % [kWh/kg]
             outTab.SEC = SEC;
-            dTF2 = 0;
+            dT2 = 0;
         case('feedTEHP')
             % 计算零回流时的料液加热所需热量
             refluxRatio = 0;
@@ -161,7 +161,8 @@ while abs(dTF2)>1e-8
                 case('countercurrent')
                     dTP2 = profile1.S2(1).Temp-TP2;
             end
-            if abs(dTF2) < 1e-8
+            dT2 = max(abs([dTF2,dTP2]));
+            if dT2 < 1e-8
                 % 计算WF和R
                 [RR,QM,WF,WP,~,~] = CalcReflux(profile1,Q(1));
                 Q2TEC = sum(cellfun(@(x)x(1,2),profile1.QTEC));
@@ -198,7 +199,8 @@ while abs(dTF2)>1e-8
                 case('countercurrent')
                     dTP2 = profile1.S2(1).Temp-TP2;
             end
-            if abs(dTF2) < 1e-8
+            dT2 = max(abs([dTF2,dTP2]));
+            if dT2 < 1e-8
                 % 计算WF和R
                 [RR,QM,WF,WP,~,~] = CalcReflux(profile1,Q(1));
                 Q2TEC = sum(cellfun(@(x)x(2,2),profile1.QTEC));
