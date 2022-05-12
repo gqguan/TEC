@@ -13,23 +13,26 @@ function out = TE_ShowPerformance(Th,Tc,TEC,TECopts,opStr)
         Th = 273.15+45; % [K]
         Tc = 273.15+5; % [K]
         load('TEC_Params.mat', 'TEC_Params')
-        TEC = TEC_Params.TEC(14,:);
-        TECopts = [1,0];
-        opStr = 'max.COP2';
+        iTEC = 9;
+        TEC = TEC_Params.TEC(iTEC,:);
+        TECopts = [TEC_Params.opt1(iTEC),TEC_Params.opt2(iTEC)];
+        opStr = 'max.Q1';
         showFig = true;
     end
     strIU = {'Current','Voltage'};
     strUnit = {'A','V'};
+    solOpts = optimset('Display','none');
     % 设定电流范围
     lb = 0.5; ub = 10; % 电流范围0.5~10[A]
     % 计算最大吸热量
     fun1 = @(x1)-GetTECHeat(x1,'cooling',Th,Tc,TEC,TECopts); % 负值求最小即求最大吸热量
-    solOpts = optimset('Display','none');
     solX1 = fminbnd(fun1,lb,ub,solOpts);
-    
     % 计算最大制冷系数
     fun2 = @(x2)-MaxCOP(x2,'cooling',Th,Tc,TEC,TECopts);
     solX2 = fminbnd(fun2,0.12*solX1,2*solX1,solOpts);
+    % 计算最大放热量
+    fun3 = @(x3)-GetTECHeat(x3,'heating',Th,Tc,TEC,TECopts);
+    solX3 = fminbnd(fun3,lb,ub,solOpts);
     % 输出
     msg = sprintf('在TEC片冷热侧温度分别为%.2f[K]和%.2f[K]',Th,Tc);
     msg = sprintf('%s，输入%s为',msg,strIU{TECopts(2)+1});
@@ -46,6 +49,11 @@ function out = TE_ShowPerformance(Th,Tc,TEC,TECopts,opStr)
             out = -fun2(solX2);
             msg = sprintf('%s%.4g[%s]时制冷系数达最大值%.4g', ...
                 msg,solX2,strUnit{TECopts(2)+1},out);
+            logger.trace('TE_ShowPerformance',msg)
+        case 'max.Q1'
+            out = -fun3(solX3);
+            msg = sprintf('%s%.4g[%s]时放热量达最大值%.4g[W]', ...
+                msg,solX3,strUnit{TECopts(2)+1},out);
             logger.trace('TE_ShowPerformance',msg)
         case 'max.All'
             out.MaxQ2.Value = -fun1(solX1);
