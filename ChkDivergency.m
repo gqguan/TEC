@@ -1,3 +1,5 @@
+%% 判定n次调用每次输入的数值是否增加
+% 功能说明：比较n次调用每次输入的数值，若数值每次比上一次输入数值更大则判定为发散
 function outTF = ChkDivergency(inVal,n)
     if ~exist('n','var')
         n = 3;
