@@ -36,12 +36,16 @@ function [Q,QM,WF,WP,TP1,TP2,TF1,TF2,dQ] = CalcHeat(profile,R,cfg)
     if isinf(R) % 全回流
         Q(1) = QM+WP*cp1*(TM(1)-T0);
         WF = WP;
+        Q(2) = QM+WP*cp2*(TM(2)-TP2);
+        dQ = 0;
     else % 部分回流，Q1的推导见case_DeriveFormulus.m
         TMF = TM(1);
         switch cfg
             case {'classical','extTEHP'}
                 % 料液侧加热量
                 Q(1) = (QM*T0 + QM*R*TF2 - T0*TF1*W1*cp1 + TF1*TF2*W1*cp1 - T0*TF2*WP*cp1 + T0*TMF*WP*cp1 - R*T0*TF2*WP*cp1 + R*TF2*TMF*WP*cp1)/(TF2 + R*TF2);
+                % 渗透液吸热量
+                Q(2) = QM+WP*cp2*(TM(2)-TP2);
                 dQ = 0;
             case 'feedTEHP'
                 % TEC传热量
