@@ -69,7 +69,7 @@ function [TECs,profile,flag] = CalcTEHP(config,Q,sIn,TECs,TEXs,membrane,flowPatt
             [Q2,profile] = CalcQ2(x1,sIn,TECs,TEXs,membrane,flowPattern,opts);
             if Q-Q2 > 1e-4
                 flag = 1; % 给定TEC(1)制冷量低于渗透液冷却的冷量要求
-            elseif Q-Q2 < 1e-4
+            elseif Q-Q2 < -1e-4
                 flag = 2; % 给定TEC(1)制冷量超过渗透液冷却的冷量要求
             else
                 flag = 0;
@@ -79,7 +79,14 @@ function [TECs,profile,flag] = CalcTEHP(config,Q,sIn,TECs,TEXs,membrane,flowPatt
             % 求TEC设定参数使min(TEC吸热量-指定值Q)
             x2 = lsqnonlin(DiffQ1,x0,lb,ub,solOpts);
             TECs(2).(strIU{opts(2)+1}) = x2;
-            [~,profile] = CalcQ1(x2,sIn,TECs,TEXs,membrane,flowPattern,opts);
+            [Q1,profile] = CalcQ1(x2,sIn,TECs,TEXs,membrane,flowPattern,opts);
+            if Q-Q1 > 1e-4
+                flag = 1; % 给定TEC(2)放热量低于料液加热量要求
+            elseif Q-Q1 < -1e-4
+                flag = 2; % 给定TEC(2)放热量大于料液加热量要求
+            else
+                flag = 0;
+            end
     end
 
     function [Q2,profile] = CalcQ2(xVal,sIn,TECs,TEXs,membrane,flowPattern,opts)

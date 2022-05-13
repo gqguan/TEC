@@ -23,7 +23,7 @@ if nargin == 0
     T1 = 273.15+57.5; T2 = 273.15+37.5; % [K]
     W1 = 1.217e-2; W2 = 6.389e-3; % [kg/s]
     refluxRatio = inf; % 全回流
-    config = 'feedTEHP'; 
+    config = 'permTEHP'; 
 end
 
 % 设定环境温度
@@ -178,7 +178,7 @@ while abs(dT2)>1e-8
                     dTP2 = profile1.S2(1).Temp-TP2;
             end
             dT2 = max(abs([dTF2,dTP2]));
-            if ChkConvergency(dT2,3)
+            if ChkDivergency(dT2,3)
                 msg = '【注意】出口温度可能发散';
                 outTab = fillTab(outTab,nan,1,Q(1),0,Q(2),nan,RR,nan,msg);
                 break
@@ -212,7 +212,12 @@ while abs(dT2)>1e-8
                 break
             end
             % 按向料液传热量计算DCMD膜组件料液侧集成半导体热泵所需电功
-            [TECs,profile1] = CalcTEHP(config,Q(1),sIn,TECs,TEXs,membrane,"countercurrent",opts);
+            [TECs,profile1,flag] = CalcTEHP(config,Q(1),sIn,TECs,TEXs,membrane,"countercurrent",opts);
+            if flag ~= 0
+                msg = sprintf('【注意】%s 料液加热所需热量%.4g[W]大于该状态下TEC(2)的放热能力',sn,Q(1));
+                outTab = fillTab(outTab,nan,1,Q(1),0,Q(2),nan,RR,nan,msg);
+                break
+            end
             dTF2 = profile1.S1(end).Temp-TF2;
             iStart = strfind(profile.Remarks,'：');
             switch profile.Remarks(iStart+1:end)
@@ -222,6 +227,11 @@ while abs(dT2)>1e-8
                     dTP2 = profile1.S2(1).Temp-TP2;
             end
             dT2 = max(abs([dTF2,dTP2]));
+            if ChkDivergency(dT2,3)
+                msg = '【注意】出口温度可能发散';
+                outTab = fillTab(outTab,nan,1,Q(1),0,Q(2),nan,RR,nan,msg);
+                break
+            end
             if dT2 < 1e-8
                 % 计算WF和R
                 [RR,QM,WF,WP,~,~] = CalcReflux(profile1,Q(1));
