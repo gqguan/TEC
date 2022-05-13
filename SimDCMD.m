@@ -1,14 +1,14 @@
 
-function [outTab,profile] = SimDCMD(W1,T1,W2,T2,config,refluxRatio)
+function [outTab,profile] = SimDCMD(sn,W1,T1,W2,T2,config,refluxRatio)
 % 输入参数config说明：
 % classical - 传统DCMD系统：外置料液加热和渗透液冷却单元，其中加热用电热，冷却用TEC
 % extTEHP   - 在传统DCMD系统的基础上外置加热和冷却采用半导体热泵耦合，
 %             采用料液侧部分回流解决TEC放热量大于吸热量的问题，故在该设定下无需输入参数refluxRation
 % feedTEHP  - 在膜组件料液侧集成TEHP单元：TEHP热侧在膜组件料液流道中加热料液，而TEHP冷侧从渗透液吸热
 outTab = table;
-WF = missing;
-WP = missing;
-QM = missing;
+WF = nan;
+WP = nan;
+QM = nan;
 % 调用公用变量定义，其中包括DuctGeom（流道几何尺寸）、Stream（物料定义）、MembrProps（膜材料性质）
 [~,Stream,MembrProps] = InitStruct();
 % 设定膜组件的热、冷侧进口温度和流率
@@ -19,10 +19,11 @@ if ~exist('config','var')
     config = 'classical';
 end
 if nargin == 0
+    sn = 'test';
     T1 = 273.15+65; T2 = 273.15+30; % [K]
     W1 = 1.217e-2; W2 = 6.389e-3; % [kg/s]
     refluxRatio = inf; % 全回流
-    config = 'feedTEHP'; 
+    config = 'permTEHP'; 
 end
 
 % 设定环境温度
@@ -99,7 +100,7 @@ while abs(dT2)>1e-8
             % 计算系统总能耗
             SEC = sum(E)/WP/3600/1000; % [kWh/kg]
             outTab.SEC = SEC;
-            outTab.NOTE = '';
+            outTab.NOTE = {'ok'};
             dT2 = 0;
         case('extTEHP') % 计算稳态操作全回流时料液放热量Q(1)和渗透液吸热量Q(2)
             % 计算零回流时的料液加热所需热量Q(1)及渗透液冷却所需冷量Q(2)
@@ -115,7 +116,7 @@ while abs(dT2)>1e-8
             TH = mean([TF0,TF1]);
             TC = mean([TP1,TP2]);
             % 计算满足渗透液冷却所需冷量的TEC输入电功
-            [E(2),QTEC,~,~] = CalcTECPower(opStr,Q(2),TH,TC,exTECs(1),opts);
+            [E(2),QTEC,~,~,~] = CalcTECPower(opStr,Q(2),TH,TC,exTECs(1),opts);
             % TEC向料液侧放热量
             Q1 = E(2)+QTEC;
             % 计算料液侧加热量为Q1时的回流比
@@ -133,9 +134,9 @@ while abs(dT2)>1e-8
             % TEC向料液侧放热量
             Q1 = E(2)+QTEC;
             if Q1 > Q(1) 
-                msg = sprintf('【注意】TEC放热量%.4g[W]大于料液加热所需最大热量%.4g[W]，建议提高W1！',Q1,Q(1));
+                msg = sprintf('【注意】%s TEC放热量%.4g[W]大于料液加热所需最大热量%.4g[W]，建议提高W1！',sn,Q1,Q(1));
             else
-                msg = '';
+                msg = 'ok';
             end
             outTab.Q1 = Q1;
             outTab.E1 = 0; % 集成热泵时放热能耗为0
@@ -143,7 +144,7 @@ while abs(dT2)>1e-8
             % 计算系统总能耗
             SEC = sum(E)/WP/3600/1000; % [kWh/kg]
             outTab.SEC = SEC;
-            outTab.NOTE = msg;
+            outTab.NOTE = {msg};
             dT2 = 0;
         case('feedTEHP')
             % 按TEC(1)的放热量计算料液回流比
@@ -157,16 +158,16 @@ while abs(dT2)>1e-8
             % 评估渗透液冷却冷量是否超过TEC(1)的最大制冷能力
             maxQ2 = TE_ShowPerformance(TH,TC,TECs(1),opts,'max.Q2');
             if Q(2)>maxQ2
-                msg = sprintf('【注意】渗透液冷却所需冷量%.4g[W]大于该状态下TEC(1)的吸热量%.4g[W]',Q(2),maxQ2);
-                outTab.Q2TEC = missing;
+                msg = sprintf('【注意】%s 渗透液冷却所需冷量%.4g[W]大于该状态下TEC(1)的吸热量%.4g[W]',sn,Q(2),maxQ2);
+                outTab.QTEC = nan;
                 outTab.NTEC = 1;
                 outTab.Q1 = Q(1);
                 outTab.E1 = 0;
                 outTab.Q2 = Q(2);
-                outTab.E2 = missing;
+                outTab.E2 = nan;
                 outTab.RR = RR;
-                outTab.SEC = missing;
-                outTab.NOTE = msg;
+                outTab.SEC = nan;
+                outTab.NOTE = {msg};
                 break
             end
             % 按渗透液吸热量计算DCMD膜组件料液侧集成半导体热泵所需电功
@@ -181,9 +182,9 @@ while abs(dT2)>1e-8
             end
             dT2 = max(abs([dTF2,dTP2]));
             if dT2 < 1e-8
-                Q2TEC = sum(cellfun(@(x)x(1,2),profile1.QTEC));
-                E(2) = sum(cellfun(@(x)x(1,1),profile1.QTEC))-Q2TEC;
-                outTab.Q2TEC = Q2TEC;
+                QTEC = sum(cellfun(@(x)x(1,2),profile1.QTEC));
+                E(2) = sum(cellfun(@(x)x(1,1),profile1.QTEC))-QTEC;
+                outTab.QTEC = QTEC;
                 outTab.NTEC = 1;
                 outTab.Q1 = Q(1);
                 outTab.E1 = 0;
@@ -193,10 +194,10 @@ while abs(dT2)>1e-8
                 % 计算系统总能耗
                 SEC = sum(E)/WP/3600/1000; % [kWh/kg]
                 outTab.SEC = SEC;
-                outTab.NOTE = '';
+                outTab.NOTE = {'ok'};
                 break
             else
-                fprintf('feedTEHP：dTF2 = %.4g[K]；dTP2 = %.4g[K]；dQ2 = %.4g[W]\n',dTF2,dTP2,dQ2);
+                fprintf('%s dTF2 = %.4g[K]；dTP2 = %.4g[K]；dQ2 = %.4g[W]\n',sn,dTF2,dTP2,dQ2);
             end
         case('permTEHP')
             % 按TEC(2)向料液传热量计算回流比
@@ -210,8 +211,8 @@ while abs(dT2)>1e-8
             % 评估料液加热量是否超过TEC(2)的最大放热能力
             maxQ1 = TE_ShowPerformance(TH,TC,TECs(2),opts,'max.Q1');
             if Q(1)>maxQ1
-                msg = sprintf('【注意】料液加热所需热量%.4g[W]大于该状态下TEC(2)的最大放热能力%.4g[W]',Q(1),maxQ1);
-                outTab.Q2TEC = missing;
+                msg = sprintf('【注意】%s 料液加热所需热量%.4g[W]大于该状态下TEC(2)的最大放热能力%.4g[W]',sn,Q(1),maxQ1);
+                outTab.QTEC = missing;
                 outTab.NTEC = 1;
                 outTab.Q1 = Q(1);
                 outTab.E1 = 0;
@@ -219,7 +220,7 @@ while abs(dT2)>1e-8
                 outTab.E2 = missing;
                 outTab.RR = RR;
                 outTab.SEC = missing;
-                outTab.NOTE = msg;
+                outTab.NOTE = {msg};
                 break
             end
             % 按向料液传热量计算DCMD膜组件料液侧集成半导体热泵所需电功
@@ -236,9 +237,9 @@ while abs(dT2)>1e-8
             if dT2 < 1e-8
                 % 计算WF和R
                 [RR,QM,WF,WP,~,~] = CalcReflux(profile1,Q(1));
-                Q2TEC = sum(cellfun(@(x)x(2,2),profile1.QTEC));
-                E(2) = sum(cellfun(@(x)x(2,1),profile1.QTEC))-Q2TEC;
-                outTab.QTEC = Q2TEC;
+                QTEC = sum(cellfun(@(x)x(2,2),profile1.QTEC));
+                E(2) = sum(cellfun(@(x)x(2,1),profile1.QTEC))-QTEC;
+                outTab.QTEC = QTEC;
                 outTab.NTEC = 1;
                 outTab.Q1 = Q(1);
                 outTab.E1 = 0;
@@ -248,10 +249,10 @@ while abs(dT2)>1e-8
                 % 计算系统总能耗
                 SEC = sum(E)/WP/3600/1000; % [kWh/kg]
                 outTab.SEC = SEC;
-                outTab.NOTE = '';
+                outTab.NOTE = {'ok'};
                 break
             else
-                fprintf('permTEHP：dTF2 = %.4g[K]；dTP2 = %.4g[K]；dQ1 = %.4g[W]\n',dTF2,dTP2,dQ1);
+                fprintf('%s dTF2 = %.4g[K]；dTP2 = %.4g[K]；dQ1 = %.4g[W]\n',sn,dTF2,dTP2,dQ1);
             end
     end
 end

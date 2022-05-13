@@ -44,27 +44,25 @@ function out = TE_ShowPerformance(Th,Tc,TEC,TECopts,opStr)
             out = -fun1(solX1);
             msg = sprintf('%s%.4g[%s]时吸热量达最大值%.4g[W]', ...
                 msg,solX1,strUnit{TECopts(2)+1},out);
-            logger.trace('TE_ShowPerformance',msg)
         case 'max.COP2'
             out = -fun2(solX2);
             msg = sprintf('%s%.4g[%s]时制冷系数达最大值%.4g', ...
                 msg,solX2,strUnit{TECopts(2)+1},out);
-            logger.trace('TE_ShowPerformance',msg)
         case 'max.Q1'
             out = -fun3(solX3);
             msg = sprintf('%s%.4g[%s]时放热量达最大值%.4g[W]', ...
                 msg,solX3,strUnit{TECopts(2)+1},out);
-            logger.trace('TE_ShowPerformance',msg)
         case 'max.All'
             out.MaxQ2.Value = -fun1(solX1);
             out.MaxQ2.(strIU{TECopts(2)+1}) = solX1;
             out.MaxCOP2.Value = -fun2(solX2);
             out.MaxCOP2.(strIU{TECopts(2)+1}) = solX2;
             out.MaxCOP2.Q2 = -fun1(solX2);
+            msg = 'display all';
         otherwise
             error('TE_ShowPerformance()输入操作参数有误！')
     end
-    
+%     logger.trace('TE_ShowPerformance',msg)
     if showFig 
         % 绘制不同吸热量时的制冷系数曲线
         current = linspace(0.12*solX1,2*solX1);
