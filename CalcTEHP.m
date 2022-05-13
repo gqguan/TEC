@@ -3,7 +3,7 @@
 %
 % by Dr. Guan Guoqiang @ SCUT on 2022/5/12
 
-function [TECs,profile] = CalcTEHP(config,Q,sIn,TECs,TEXs,membrane,flowPattern,opts)
+function [TECs,profile,flag] = CalcTEHP(config,Q,sIn,TECs,TEXs,membrane,flowPattern,opts)
 
     % 添加\Common目录以便调用自定义公用函数
     homePath = cd;
@@ -66,7 +66,14 @@ function [TECs,profile] = CalcTEHP(config,Q,sIn,TECs,TEXs,membrane,flowPattern,o
             % 求TEC设定参数使min(TEC吸热量-指定值Q)
             x1 = lsqnonlin(DiffQ2,x0,lb,ub,solOpts);
             TECs(1).(strIU{opts(2)+1}) = x1;
-            [~,profile] = CalcQ2(x1,sIn,TECs,TEXs,membrane,flowPattern,opts);
+            [Q2,profile] = CalcQ2(x1,sIn,TECs,TEXs,membrane,flowPattern,opts);
+            if Q-Q2 > 1e-4
+                flag = 1; % 给定TEC(1)制冷量低于渗透液冷却的冷量要求
+            elseif Q-Q2 < 1e-4
+                flag = 2; % 给定TEC(1)制冷量超过渗透液冷却的冷量要求
+            else
+                flag = 0;
+            end
         case 'permTEHP'
             DiffQ1 = @(x)CalcQ1(x,sIn,TECs,TEXs,membrane,flowPattern,opts)-Q;
             % 求TEC设定参数使min(TEC吸热量-指定值Q)

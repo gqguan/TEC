@@ -20,10 +20,10 @@ if ~exist('config','var')
 end
 if nargin == 0
     sn = 'test';
-    T1 = 273.15+65; T2 = 273.15+30; % [K]
+    T1 = 273.15+57.5; T2 = 273.15+37.5; % [K]
     W1 = 1.217e-2; W2 = 6.389e-3; % [kg/s]
     refluxRatio = inf; % 全回流
-    config = 'permTEHP'; 
+    config = 'feedTEHP'; 
 end
 
 % 设定环境温度
@@ -159,19 +159,16 @@ while abs(dT2)>1e-8
             maxQ2 = TE_ShowPerformance(TH,TC,TECs(1),opts,'max.Q2');
             if Q(2)>maxQ2
                 msg = sprintf('【注意】%s 渗透液冷却所需冷量%.4g[W]大于该状态下TEC(1)的吸热量%.4g[W]',sn,Q(2),maxQ2);
-                outTab.QTEC = nan;
-                outTab.NTEC = 1;
-                outTab.Q1 = Q(1);
-                outTab.E1 = 0;
-                outTab.Q2 = Q(2);
-                outTab.E2 = nan;
-                outTab.RR = RR;
-                outTab.SEC = nan;
-                outTab.NOTE = {msg};
+                outTab = fillTab(outTab,nan,1,Q(1),0,Q(2),nan,RR,nan,msg);
                 break
             end
             % 按渗透液吸热量计算DCMD膜组件料液侧集成半导体热泵所需电功
-            [TECs,profile1] = CalcTEHP(config,Q(2),sIn,TECs,TEXs,membrane,"countercurrent",opts);
+            [TECs,profile1,flag] = CalcTEHP(config,Q(2),sIn,TECs,TEXs,membrane,"countercurrent",opts);
+            if flag ~= 0
+                msg = sprintf('【注意】%s 渗透液冷却所需冷量%.4g[W]大于该状态下TEC(1)的制冷能力',sn,Q(2));
+                outTab = fillTab(outTab,nan,1,Q(1),0,Q(2),nan,RR,nan,msg);
+                break
+            end
             dTF2 = profile1.S1(end).Temp-TF2;
             iStart = strfind(profile.Remarks,'：');
             switch profile.Remarks(iStart+1:end)
@@ -181,16 +178,15 @@ while abs(dT2)>1e-8
                     dTP2 = profile1.S2(1).Temp-TP2;
             end
             dT2 = max(abs([dTF2,dTP2]));
+            if ChkConvergency(dT2,3)
+                msg = '【注意】出口温度可能发散';
+                outTab = fillTab(outTab,nan,1,Q(1),0,Q(2),nan,RR,nan,msg);
+                break
+            end
             if dT2 < 1e-8
                 QTEC = sum(cellfun(@(x)x(1,2),profile1.QTEC));
                 E(2) = sum(cellfun(@(x)x(1,1),profile1.QTEC))-QTEC;
-                outTab.QTEC = QTEC;
-                outTab.NTEC = 1;
-                outTab.Q1 = Q(1);
-                outTab.E1 = 0;
-                outTab.Q2 = Q(2);
-                outTab.E2 = E(2);
-                outTab.RR = RR;
+                outTab = fillTab(outTab,QTEC,1,Q(1),0,Q(2),E(2),RR);
                 % 计算系统总能耗
                 SEC = sum(E)/WP/3600/1000; % [kWh/kg]
                 outTab.SEC = SEC;
@@ -212,15 +208,7 @@ while abs(dT2)>1e-8
             maxQ1 = TE_ShowPerformance(TH,TC,TECs(2),opts,'max.Q1');
             if Q(1)>maxQ1
                 msg = sprintf('【注意】%s 料液加热所需热量%.4g[W]大于该状态下TEC(2)的最大放热能力%.4g[W]',sn,Q(1),maxQ1);
-                outTab.QTEC = missing;
-                outTab.NTEC = 1;
-                outTab.Q1 = Q(1);
-                outTab.E1 = 0;
-                outTab.Q2 = Q(2);
-                outTab.E2 = missing;
-                outTab.RR = RR;
-                outTab.SEC = missing;
-                outTab.NOTE = {msg};
+                outTab = fillTab(outTab,nan,1,Q(1),0,Q(2),nan,RR,nan,msg);
                 break
             end
             % 按向料液传热量计算DCMD膜组件料液侧集成半导体热泵所需电功
@@ -239,13 +227,7 @@ while abs(dT2)>1e-8
                 [RR,QM,WF,WP,~,~] = CalcReflux(profile1,Q(1));
                 QTEC = sum(cellfun(@(x)x(2,2),profile1.QTEC));
                 E(2) = sum(cellfun(@(x)x(2,1),profile1.QTEC))-QTEC;
-                outTab.QTEC = QTEC;
-                outTab.NTEC = 1;
-                outTab.Q1 = Q(1);
-                outTab.E1 = 0;
-                outTab.Q2 = Q(2);
-                outTab.E2 = E(2);
-                outTab.RR = RR;
+                outTab = fillTab(outTab,QTEC,1,Q(1),0,Q(2),E(2),RR);
                 % 计算系统总能耗
                 SEC = sum(E)/WP/3600/1000; % [kWh/kg]
                 outTab.SEC = SEC;
@@ -263,5 +245,22 @@ outTab.QM = QM;
 colNames = {'RR' 'WF' 'WP' 'QM' 'Q1' 'E1' 'Q2' 'QTEC' 'E2' 'NTEC' 'SEC' 'NOTE'};
 sortedColI = cellfun(@(x)find(strcmp(x,outTab.Properties.VariableNames)),colNames);
 outTab = outTab(:,sortedColI);
+
+    function oTab = fillTab(iTab,QTEC,nTEC,Q1,E1,Q2,E2,RR,SEC,msg)
+        oTab = iTab;
+        oTab.QTEC = QTEC;
+        oTab.NTEC = nTEC;
+        oTab.Q1 = Q1;
+        oTab.E1 = E1;
+        oTab.Q2 = Q2;
+        oTab.E2 = E2;
+        oTab.RR = RR;
+        if exist('SEC','var')
+            oTab.SEC = SEC;
+        end
+        if exist('msg','var')
+            oTab.NOTE = {msg};
+        end
+    end
 
 end
