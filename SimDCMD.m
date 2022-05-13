@@ -20,8 +20,8 @@ if ~exist('config','var')
 end
 if nargin == 0
     sn = 'test';
-    T1 = 273.15+57.5; T2 = 273.15+37.5; % [K]
-    W1 = 1.217e-2; W2 = 6.389e-3; % [kg/s]
+    T1 = 273.15+50; T2 = 273.15+37.5; % [K]
+    W1 = 6.389e-3; W2 = 6.085e-4; % [kg/s]
     refluxRatio = inf; % 全回流
     config = 'permTEHP'; 
 end
@@ -200,9 +200,9 @@ while abs(dT2)>1e-8
             Q1 = sum(cellfun(@(x)x(2,1),profile.QTEC));
             [RR,~,~,~,~,~] = CalcReflux(profile,Q1);
             % 计算TEC(2)热侧温度TH
-            [Q,QM,WF,WP,TP1,TP2,TF1,TF2,dQ1] = CalcHeat(profile,RR,config);
+            [Q,QM,WF,WP,TP1,TP2,TF1,TF2,dQ1,TF0] = CalcHeat(profile,RR,config);
             TC = mean([TP1,TP2]);
-            TH = mean([TF1,TF2]);
+            TH = mean([TF1,TF0]);
             TEXs(2) = TH;
             % 评估料液加热量是否超过TEC(2)的最大放热能力
             maxQ1 = TE_ShowPerformance(TH,TC,TECs(2),opts,'max.Q1');

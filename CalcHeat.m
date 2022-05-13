@@ -1,4 +1,4 @@
-function [Q,QM,WF,WP,TP1,TP2,TF1,TF2,dQ] = CalcHeat(profile,R,cfg)
+function [Q,QM,WF,WP,TP1,TP2,TF1,TF2,dQ,TF0] = CalcHeat(profile,R,cfg)
     % 已知膜组件温度分布，计算DCMD系统在给定回流比时的料液加热量和进、出料流率
     if ~exist('R','var')
         R = inf; % 回流比为无穷大，即全回流
@@ -65,6 +65,7 @@ function [Q,QM,WF,WP,TP1,TP2,TF1,TF2,dQ] = CalcHeat(profile,R,cfg)
                 Q(1) = QM+WP*cp1*(TMF-T0);
                 dQ1 = Q(1)-Q1;
                 dQ = dQ1;
+                TF0 = -(Q(1) - TF1*W1*cp1)/(W1*cp1); % 详见case_DeriveFormulus.m
         end
         WF = (W1+R*WP)/(1+R);
     end
