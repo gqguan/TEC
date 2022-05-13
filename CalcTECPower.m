@@ -39,7 +39,7 @@ function [E,Q,diffQ,nTEC,newTEC] = CalcTECPower(opStr,givenQ,Th,Tc,TEC,opts)
                 [Q,E] = GetTECHeat(x1,opStr,Th,Tc,TEC,opts);
                 msg = sprintf('给定传热量%.4g[W]大于TEC能力%.4g[W]！采用%d个TEC并联传热，每个TEC输入%s为%.4g[%s]，%s传热量为%.4g[W]，输入电功%.4g[W]\n', ...
                     givenQ,Q,nTEC,strIU{opts(2)+1},x1,strUnit{opts(2)+1},opStr,Q,E);
-                logger.info('CalcTECPower',msg)
+%                 logger.info('CalcTECPower',msg)
                 Q = Q*nTEC;
                 E = E*nTEC;
                 diffQ = Q-givenQ;
