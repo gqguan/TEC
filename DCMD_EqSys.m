@@ -7,7 +7,7 @@
 %                    T(6)=TS2C, T(7)=TS2H, T(8)=T2H, T(9)=TM2H, 
 %                    T(10)=TM2C, T(11)=T2C, T(12) = TS3C
 %                    ...
-%  TEXs - (real array) hot- and cold-side environmental temperatures [K]
+%  TEXs - (real array) cold- and hot-side environmental temperatures [K]
 %  TECs - (struct array) properties of TECs TECs(1) = TEC1
 %                                           TECs(2) = TEC2
 %                                           TECs(3) = TEC3
