@@ -1,13 +1,22 @@
 function Postprocess(results,opStr)
+colorCode = {'#0072BD' '#D95319' '#77AC30' '#A2142F' '#EDB120' '#4DBEEE' '#7E2F8E'};
 %% 后处理
 switch opStr
     case 'plotBar'
         % 对比集成半导体热泵与传统DCMD的单位能耗
         cfgList = categories(categorical(results.CFG));
+        % 绘制能耗比柱状图
+        refCFG = 'classical';
+        SEC0 = results.SEC(strcmp(results.CFG,refCFG));
+        cfgList(strcmp(cfgList,refCFG)) = [];
         SEC = cell2mat(cellfun(@(x)results.SEC(strcmp(results.CFG,x)),cfgList','UniformOutput',false));
-        bar(SEC)
+        RSEC = SEC./SEC0;
+        b = bar(RSEC,'BaseValue',1);
+        for i = 1:length(b)
+            b(i).FaceColor = colorCode{i};
+        end
         xlabel('Case No.#')
-        ylabel('SEC [kWh/kg]')
+        ylabel('Relative SEC')
         legend(cfgList)
     case 'RSM'
         % 响应面分析
