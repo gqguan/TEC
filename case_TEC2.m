@@ -33,9 +33,16 @@ for i = 1:length(TCs)
 end
 
 %% 输出
-[X,Y] = meshgrid(TCs,THs);
+[X,Y] = meshgrid(THs,TCs);
+figure(1)
+subplot(2,1,1)
 surf(X,Y,COP2)
-xlabel('T_C [K]')
-ylabel('T_H [K]')
+xlabel('T_H [K]')
+ylabel('T_C [K]')
 zlabel('COP_2')
+subplot(2,1,2)
+surf(X,Y,Q2)
+xlabel('T_H [K]')
+ylabel('T_C [K]')
+zlabel('Q_2')
 title(sprintf('U=%.1f V',Vset))
