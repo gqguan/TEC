@@ -11,8 +11,8 @@ Q2 = zeros(1,nGrid);
 maxQ2 = zeros(1,nGrid);
 outTab = table;
 % 冷热侧温差范围
-dT = linspace(15,45,nGrid);
-Tc = 273.15+[30,20,10]';
+dT = linspace(10,45,nGrid);
+Tc = [310.99,311.56]';
 % 载入TEC参数
 load('TEC_Params.mat','TEC_Params')
 
@@ -32,13 +32,13 @@ for i = 1:height(TEC_Params)
     for k = 1:length(Tc)
         MaxCOP2Q2(k) = rawMaxCOP2Q2(1,iMaxCOP2(k));
     end
-    THmaxCOP2 = Tc+dT(iMaxCOP2)';
+    THmaxCOP2 = Tc+dT(iMaxCOP2)'; % 最高制冷系数时的热侧温度
     [MinCOP2,iMinCOP2] = min(arrayfun(@(x)x.MaxCOP2.Value,out),[],2);
-    THminCOP2 = Tc+dT(iMinCOP2)';
+    THminCOP2 = Tc+dT(iMinCOP2)'; % 最低制冷系数时的热侧温度
     [MaxQ2,iMaxQ2] = max(arrayfun(@(x)x.MaxQ2.Value,out),[],2);
-    THmaxQ2 = Tc+dT(iMaxQ2)';
+    THmaxQ2 = Tc+dT(iMaxQ2)'; % 最大制冷量时的热侧温度
     [MinQ2,iMinQ2] = min(arrayfun(@(x)x.MaxQ2.Value,out),[],2);
-    THminQ2 = Tc+dT(iMinQ2)';
+    THminQ2 = Tc+dT(iMinQ2)'; % 最小制冷量时的热侧温度
     ITEC(1:length(Tc),1) = i;
     outTab = [outTab;table(ITEC,Tc,MaxCOP2,THmaxCOP2,MaxCOP2Q2,MinCOP2,THminCOP2,MaxQ2,THmaxQ2,MinQ2,THminQ2)];
 end
@@ -70,19 +70,19 @@ function PlotResults(Tc,dT,TEC,opts,opStr)
         Q2 = arrayfun(@(x)x.MaxCOP2.Q2,out);
         subplot(1,2,1,ax1);
         p1 = plot(ax1,dT,maxQ2); % 考察不同T1对最高COP下的吸热量影响
-        p1.DisplayName = sprintf('Tc = %.4g K',Tc);
+        p1.DisplayName = sprintf('Tc = %.4g K',Tc(j));
         xlabel('T_h-T_c [K]')
         ylabel('max.Q_2')
         hold on
         subplot(1,2,2,ax2);
         yyaxis left
         p2left = plot(ax2,dT,maxCOP2);
-        p2left.DisplayName = sprintf('Tc = %.4g K',Tc); 
+        p2left.DisplayName = sprintf('Tc = %.4g K',Tc(j)); 
         xlabel('T_h-T_c [K]')
         ylabel('max.COP_2')
         yyaxis right
         p2right = plot(ax2,dT,Q2);
-        p2right.DisplayName = sprintf('Tc = %.4g K',Tc); 
+        p2right.DisplayName = sprintf('Tc = %.4g K',Tc(j)); 
         ylabel('Q_2@max.COP_2 [W]')
         hold on
         legend(ax1)
