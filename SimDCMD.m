@@ -5,6 +5,7 @@ function [outTab,profile] = SimDCMD(sn,W1,T1,W2,T2,config,refluxRatio)
 % extTEHP   - 在传统DCMD系统的基础上外置加热和冷却采用半导体热泵耦合，
 %             采用料液侧部分回流解决TEC放热量大于吸热量的问题，故在该设定下无需输入参数refluxRation
 % feedTEHP  - 在膜组件料液侧集成TEHP单元：TEHP热侧在膜组件料液流道中加热料液，而TEHP冷侧从渗透液吸热
+clear ChkDivergency
 outTab = table;
 WF = nan;
 WP = nan;
@@ -20,10 +21,10 @@ if ~exist('config','var')
 end
 if nargin == 0
     sn = 'test';
-    T1 = 273.15+50; T2 = 273.15+37.5; % [K]
+    T1 = 273.15+50; T2 = 273.15+40; % [K]
     W1 = 6.389e-3; W2 = 6.085e-4; % [kg/s]
     refluxRatio = inf; % 全回流
-    config = 'permTEHP'; 
+    config = 'feedTEHP'; 
 end
 
 % 设定环境温度
@@ -83,7 +84,7 @@ while abs(dT2)>1e-8
         case('classical')
             % 计算稳态操作回流比为R时料液放热量Q(1)和渗透液吸热量Q(2)
             outTab.RR = refluxRatio;
-            [Q,QM,WF,WP,TP1,TP2] = CalcHeat(profile,refluxRatio);
+            [Q,QM,WF,WP,TP1,TP2,~,~,~,TF0] = CalcHeat(profile,refluxRatio);
             % 计算膜组件外置半导体制冷功耗
             iTEC1 = 9;
             exTECs(1) = TEC_Params.TEC(iTEC1);
@@ -154,6 +155,7 @@ while abs(dT2)>1e-8
             [Q,QM,WF,WP,TP1,TP2,TF1,TF2,dQ2] = CalcHeat(profile,RR,config);
             TC = mean([TP1,TP2]);
             TH = mean([TF1,TF2]);
+            TF0 = nan;
             TEXs(1) = TC;
             % 评估渗透液冷却冷量是否超过TEC(1)的最大制冷能力
             maxQ2 = TE_ShowPerformance(TH,TC,TECs(1),opts,'max.Q2');
@@ -243,16 +245,17 @@ while abs(dT2)>1e-8
                 outTab.SEC = SEC;
                 outTab.NOTE = {'ok'};
                 break
-            else
+            else                
                 fprintf('%s dTF2 = %.4g[K]；dTP2 = %.4g[K]；dQ1 = %.4g[W]\n',sn,dTF2,dTP2,dQ1);
             end
     end
 end
+outTab.TF0 = TF0;
 outTab.WF = WF;
 outTab.WP = WP;
 outTab.QM = QM;
 % 整理输出表格各列顺序
-colNames = {'RR' 'WF' 'WP' 'QM' 'Q1' 'E1' 'Q2' 'QTEC' 'E2' 'NTEC' 'SEC' 'NOTE'};
+colNames = {'RR' 'WF' 'WP' 'QM' 'Q1' 'E1' 'Q2' 'E2' 'QTEC' 'NTEC' 'TF0' 'SEC' 'NOTE'};
 sortedColI = cellfun(@(x)find(strcmp(x,outTab.Properties.VariableNames)),colNames);
 outTab = outTab(:,sortedColI);
 
