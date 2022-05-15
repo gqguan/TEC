@@ -10,13 +10,13 @@ function out = TE_ShowPerformance(Th,Tc,TEC,TECopts,opStr)
     showFig = false;
     % 函数调试用
     if nargin == 0
-        Th = 273.15+45; % [K]
-        Tc = 273.15+5; % [K]
+        Th = 273.15+55; % [K]
+        Tc = 273.15+35; % [K]
         load('TEC_Params.mat', 'TEC_Params')
         iTEC = 9;
         TEC = TEC_Params.TEC(iTEC,:);
         TECopts = [TEC_Params.opt1(iTEC),TEC_Params.opt2(iTEC)];
-        opStr = 'max.Q1';
+        opStr = 'max.Q2';
         showFig = true;
     end
     strIU = {'Current','Voltage'};
