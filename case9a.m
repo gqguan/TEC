@@ -73,8 +73,8 @@ switch input('是[1]/否[0]是否从存盘数据中继续计算：')
             tbl(iExp,:) = [tab1,tab2,cell2table({profile})];
             hbar.iterate(1)
         end
-        tbl.Properties.VariableNames = {'SN' 'CFG' 'W1' 'T1' 'W2' 'T2' 'RR' 'WF' ...
-            'WP' 'QM' 'Q1' 'E1' 'Q2' 'QTEC' 'E2' 'NTEC' 'SEC' 'NOTE' 'profile'};
+        tbl.Properties.VariableNames = {'SN' 'CFG' 'W1' 'T1' 'W2' 'T2' ...
+           'RR' 'WF' 'WP' 'QM' 'Q1' 'E1' 'Q2' 'E2' 'QTEC' 'NTEC' 'TF0' 'SEC' 'NOTE' 'profile'};
         results(idx,:) = tbl;
         close(hbar);
     case 0 
@@ -95,8 +95,8 @@ switch input('是[1]/否[0]是否从存盘数据中继续计算：')
             results(iExp,:) = [tab1,tab2,cell2table({profile})];
             hbar.iterate(1)
         end
-        results.Properties.VariableNames = {'SN' 'CFG' 'W1' 'T1' 'W2' 'T2' 'RR' 'WF' ...
-            'WP' 'QM' 'Q1' 'E1' 'Q2' 'QTEC' 'E2' 'NTEC' 'SEC' 'NOTE' 'profile'};
+        results.Properties.VariableNames = {'SN' 'CFG' 'W1' 'T1' 'W2' 'T2' ...
+            'RR' 'WF' 'WP' 'QM' 'Q1' 'E1' 'Q2' 'E2' 'QTEC' 'NTEC' 'TF0' 'SEC' 'NOTE' 'profile'};
         close(hbar);
     otherwise
         return
