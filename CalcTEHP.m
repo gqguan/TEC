@@ -74,7 +74,7 @@ function [TECs,profile,flag] = CalcTEHP(config,Q,sIn,TECs,TEXs,membrane,flowPatt
             else
                 flag = 0;
             end
-        case 'permTEHP'
+        case {'permTEHP','permTEHP1','permTEHP2'}
             DiffQ1 = @(x)CalcQ1(x,sIn,TECs,TEXs,membrane,flowPattern,opts)-Q;
             % 求TEC设定参数使min(TEC吸热量-指定值Q)
             x2 = lsqnonlin(DiffQ1,x0,lb,ub,solOpts);

@@ -21,10 +21,10 @@ if ~exist('config','var')
 end
 if nargin == 0
     sn = 'test';
-    T1 = 273.15+50; T2 = 273.15+40; % [K]
+    T1 = 273.15+65; T2 = 273.15+35; % [K]
     W1 = 6.389e-3; W2 = 6.085e-4; % [kg/s]
     refluxRatio = inf; % 全回流
-    config = 'feedTEHP'; 
+    config = 'permTEHP1'; 
 end
 
 % 设定环境温度
@@ -59,7 +59,7 @@ switch config
         iTEC2 = 1; % 近似绝热
         TECs(2) = TEC_Params.TEC(iTEC2); 
         TEXs(1) = T2; % 即TECs(1)的冷侧温度初设为渗透液进膜组件温度
-    case {'permTEHP'} % DCMD膜组件渗透侧集成半导体热泵
+    case {'permTEHP','permTEHP1','permTEHP2'} % DCMD膜组件渗透侧集成半导体热泵
         iTEC1 = 1;
         TECs(1) = TEC_Params.TEC(iTEC1);
         iTEC2 = 9;
@@ -197,7 +197,7 @@ while abs(dT2)>1e-8
             else
                 fprintf('%s dTF2 = %.4g[K]；dTP2 = %.4g[K]；dQ2 = %.4g[W]\n',sn,dTF2,dTP2,dQ2);
             end
-        case('permTEHP')
+        case {'permTEHP','permTEHP1'}
             % 按TEC(2)向料液传热量计算回流比
             Q1 = sum(cellfun(@(x)x(2,1),profile.QTEC));
             [RR,~,~,~,~,~] = CalcReflux(profile,Q1);
@@ -234,6 +234,45 @@ while abs(dT2)>1e-8
                 outTab = fillTab(outTab,nan,1,Q(1),0,Q(2),nan,RR,nan,msg);
                 break
             end
+            if dT2 < 1e-8
+                % 计算WF和R
+                [RR,QM,WF,WP,~,~] = CalcReflux(profile1,Q(1));
+                QTEC = sum(cellfun(@(x)x(2,2),profile1.QTEC));
+                E(2) = sum(cellfun(@(x)x(2,1),profile1.QTEC))-QTEC;
+                outTab = fillTab(outTab,QTEC,1,Q(1),0,Q(2),E(2),RR);
+                % 计算系统总能耗
+                SEC = sum(E)/WP/3600/1000; % [kWh/kg]
+                outTab.SEC = SEC;
+                outTab.NOTE = {'ok'};
+                break
+            else                
+                fprintf('%s dTF2 = %.4g[K]；dTP2 = %.4g[K]；dQ1 = %.4g[W]\n',sn,dTF2,dTP2,dQ1);
+            end
+        case 'permTEHP2'
+            % 按TEC(2)向料液传热量计算回流比
+            Q1 = sum(cellfun(@(x)x(2,1),profile.QTEC));
+            [RR,~,~,~,~,~] = CalcReflux(profile,Q1);
+            % 计算TEC(2)热侧温度TH
+            [Q,QM,WF,WP,TP1,TP2,TF1,TF2,dQ1,TF0] = CalcHeat(profile,RR,config);
+            TC = mean([TP1,TP2]);
+            TH = mean([TF2,TF0]);
+            TEXs(2) = TH;
+            % 按向料液传热量计算DCMD膜组件料液侧集成半导体热泵所需电功
+            [TECs,profile1,flag] = CalcTEHP(config,Q(1),sIn,TECs,TEXs,membrane,"countercurrent",opts);
+            if flag ~= 0
+                msg = sprintf('【注意】%s 料液加热所需热量%.4g[W]大于该状态下TEC(2)的放热能力',sn,Q(1));
+                outTab = fillTab(outTab,nan,1,Q(1),0,Q(2),nan,RR,nan,msg);
+                break
+            end
+            dTF2 = profile1.S1(end).Temp-TF2;
+            iStart = strfind(profile.Remarks,'：');
+            switch profile.Remarks(iStart+1:end)
+                case('cocurrent')
+                    dTP2 = profile1.S2(end).Temp-TP2;
+                case('countercurrent')
+                    dTP2 = profile1.S2(1).Temp-TP2;
+            end
+            dT2 = max(abs([dTF2,dTP2]));
             if dT2 < 1e-8
                 % 计算WF和R
                 [RR,QM,WF,WP,~,~] = CalcReflux(profile1,Q(1));
