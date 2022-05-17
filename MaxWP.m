@@ -32,11 +32,8 @@ maxWP = -maxWP;
         T1 = xs(2);
         W2 = xs(3);
         T2 = xs(4);
-        switch config
-            case 'classical'
-                refluxRatio = inf;
-                [outTab,~] = SimDCMD(sn,W1,T1,W2,T2,config,refluxRatio);
-        end
+        refluxRatio = inf;
+        [outTab,~] = SimDCMD(sn,W1,T1,W2,T2,config,refluxRatio);
         c = -1;
         ceq = outTab.E1+outTab.E2-E;
     end
@@ -47,11 +44,8 @@ maxWP = -maxWP;
         T1 = xs(2);
         W2 = xs(3);
         T2 = xs(4);
-        switch cfg
-            case 'classical'
-                refluxRatio = inf;
-                [outTab,profile] = SimDCMD(sn,W1,T1,W2,T2,cfg,refluxRatio);
-        end
+        refluxRatio = inf;
+        [outTab,profile] = SimDCMD(sn,W1,T1,W2,T2,cfg,refluxRatio);
         fval = outTab.WP;
         SN = {sn};
         CFG = {cfg};
