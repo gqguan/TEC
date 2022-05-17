@@ -27,6 +27,7 @@ switch opStr
         ylabel('Relative SEC')
         legend(cfgList)
         fprintf('采用extTEHP、feedTEHP和permTEHP的平均能耗比分别为%.4g、%.4g和%.4g\n',mean(RSEC,'omitnan'))
+        fprintf('最低能耗分别为%.4g、%.4g和%.4g\n',min(RSEC,[],'omitnan'))
     case 'TProfile' % 绘制膜组件中的温度侧形
         snList = {113 114 115 116};
         iLineMarked = ones(1,length(snList));
