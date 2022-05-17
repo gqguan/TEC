@@ -4,7 +4,7 @@
 %
 % by Dr. Guan Guoqiang @ SCUT on 2022/5/17
 %
-function maxWP = MaxWP(E,config)
+function [maxWP,x,tbl] = MaxWP(E,config)
 % 函数调试参数
 if nargin == 0
     E = 30; % [W]
@@ -24,6 +24,7 @@ ub = [W1bnd(2),T1bnd(2),W2bnd(2),T2bnd(2)];
 f = @(x)-WaterProduction(x,config); % 负号表示求最大值
 % 求满足给定能耗条件下的最大产水量
 [x,maxWP] = fmincon(f,x0,A,b,Aeq,beq,lb,ub,@EnergyConsumption,solOpt);
+maxWP = -maxWP;
 
     % 给定操作条件下的DCMD系统能耗为给定E值
     function [c,ceq] = EnergyConsumption(xs)
@@ -49,9 +50,13 @@ f = @(x)-WaterProduction(x,config); % 负号表示求最大值
         switch cfg
             case 'classical'
                 refluxRatio = inf;
-                [outTab,~] = SimDCMD(sn,W1,T1,W2,T2,cfg,refluxRatio);
+                [outTab,profile] = SimDCMD(sn,W1,T1,W2,T2,cfg,refluxRatio);
         end
         fval = outTab.WP;
+        SN = {sn};
+        CFG = {cfg};
+        tab1 = [cell2table(SN),cell2table(CFG),table(W1,T1,W2,T2)];
+        tbl = [tab1,outTab,cell2table({profile})];
     end
 
 end
