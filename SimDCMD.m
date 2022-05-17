@@ -10,6 +10,7 @@ outTab = table;
 WF = nan;
 WP = nan;
 QM = nan;
+TF0 = nan;
 % 调用公用变量定义，其中包括DuctGeom（流道几何尺寸）、Stream（物料定义）、MembrProps（膜材料性质）
 [~,Stream,MembrProps] = InitStruct();
 % 设定膜组件的热、冷侧进口温度和流率
@@ -21,10 +22,10 @@ if ~exist('config','var')
 end
 if nargin == 0
     sn = 'test';
-    T1 = 273.15+65; T2 = 273.15+35; % [K]
-    W1 = 6.389e-3; W2 = 6.085e-4; % [kg/s]
+    T1 = 330.65; T2 = 318.15; % [K]
+    W1 = 6.085e-4; W2 = 1.217e-2; % [kg/s]
     refluxRatio = inf; % 全回流
-    config = 'permTEHP1'; 
+    config = 'feedTEHP'; 
 end
 
 % 设定环境温度
@@ -53,7 +54,7 @@ switch config
         TECs(1:2) = TEC_Params.TEC(iTEC1);
         opts = [TEC_Params.opt1(iTEC1),TEC_Params.opt2(iTEC1)];
     case {'feedTEHP'} % DCMD膜组件料液侧集成半导体热泵
-        iTEC1 = 9;
+        iTEC1 = 20;
         TECs(1) = TEC_Params.TEC(iTEC1);
         opts = [TEC_Params.opt1(iTEC1),TEC_Params.opt2(iTEC1)];
         iTEC2 = 1; % 近似绝热
@@ -62,7 +63,7 @@ switch config
     case {'permTEHP','permTEHP1','permTEHP2'} % DCMD膜组件渗透侧集成半导体热泵
         iTEC1 = 1;
         TECs(1) = TEC_Params.TEC(iTEC1);
-        iTEC2 = 9;
+        iTEC2 = 20;
         TECs(2) = TEC_Params.TEC(iTEC2);
         opts = [TEC_Params.opt1(iTEC2),TEC_Params.opt2(iTEC2)];
         TEXs(2) = T1; % TECs(2)的热侧温度初设为料液进膜组件温度
@@ -78,6 +79,12 @@ while abs(dT2)>1e-8
     % % 并流操作
     % [profile,~] = TEHPiDCMD(sIn,TECs,TEXs,membrane,"cocurrent",opts);
     opStr = 'cooling';
+    % 检查膜组件内是否存在温度过高
+    if any(profile.T>(273.15+90))
+        msg = '【注意】膜组件中温度过高';
+        outTab = fillTab(outTab,nan,nan,nan,nan,nan,nan,nan,nan,msg);
+        break
+    end
 
     %% DCMD系统单位能耗
     switch config 
@@ -86,7 +93,7 @@ while abs(dT2)>1e-8
             outTab.RR = refluxRatio;
             [Q,QM,WF,WP,TP1,TP2,~,~,~,TF0] = CalcHeat(profile,refluxRatio);
             % 计算膜组件外置半导体制冷功耗
-            iTEC1 = 9;
+            iTEC1 = 20;
             exTECs(1) = TEC_Params.TEC(iTEC1);
             opts = [TEC_Params.opt1(iTEC1),TEC_Params.opt2(iTEC1)];
             [E(2),QTEC,~,nTEC] = CalcTECPower(opStr,Q(2),TEXs(1),mean([TP1,TP2]),exTECs(1),opts);
@@ -108,7 +115,7 @@ while abs(dT2)>1e-8
             refluxRatio = 0;
             [Q,QM,WF,WP,TP1,TP2,TF1,TF2] = CalcHeat(profile,refluxRatio);
             % 计算膜组件外置半导体制冷功耗
-            iTEC1 = 9;
+            iTEC1 = 20;
             exTECs(1) = TEC_Params.TEC(iTEC1);
             opts = [TEC_Params.opt1(iTEC1),TEC_Params.opt2(iTEC1)];
             % 膜组件外集成TEC的冷热侧温度
