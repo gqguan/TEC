@@ -55,7 +55,9 @@ function [Q,QM,WF,WP,TP1,TP2,TF1,TF2,dQ,TF0] = CalcHeat(profile,R,cfg)
                 Q2 = sum(cellfun(@(x)x(1,2),profile.QTEC)); % 膜组件热侧TEC从环境吸热量，若热侧集成TEHP吸热量=冷却渗透液的冷量
                 % 渗透液吸热量
                 Q(2) = QM+WP*cp2*(TM(2)-TP2);
-                Q(1) = (W1-WP)*cp1*TF2+WP*cp1*TMF+QM-W1*cp1*TF1;
+                Q(1) = (QM*T0 + QM*R*TF2 - T0*TF1*W1*cp1 + TF1*TF2*W1*cp1 - T0*TF2*WP*cp1 + T0*TMF*WP*cp1 - R*T0*TF2*WP*cp1 + R*TF2*TMF*WP*cp1)/(T0 + R*TF2);
+%                 Q(1) = (W1-WP)*cp1*TF2+WP*cp1*TMF+QM-W1*cp1*TF1;
+                WF = (TF1*W1 + R*TF2*WP)/(T0 + R*TF2);
                 dQ2 = Q(2)-Q2;
                 dQ = dQ2;
             case {'permTEHP','permTEHP1'}
