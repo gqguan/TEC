@@ -69,7 +69,7 @@ switch input('是[1]/否[0]是否从存盘数据中继续计算：')
             W2 = plan.W2(iExp);
             T2 = plan.T2(iExp);
             tab1 = [cell2table(SN),cell2table(CFG),table(W1,T1,W2,T2)];
-            [tab2,profile] = SimDCMD(SN{1},W1,T1,W2,T2,CFG{1});
+            [tab2,profile] = SimDCMD1(SN{1},W1,T1,W2,T2,CFG{1});
             tbl(iExp,:) = [tab1,tab2,cell2table({profile})];
             hbar.iterate(1)
         end
@@ -91,7 +91,7 @@ switch input('是[1]/否[0]是否从存盘数据中继续计算：')
             W2 = W2Lvls(dMat(iExp,4));
             T2 = T2Lvls(dMat(iExp,5));
             tab1 = [cell2table(SN),cell2table(CFG),table(W1,T1,W2,T2)];
-            [tab2,profile] = SimDCMD(SN{1},W1,T1,W2,T2,CFG{1});
+            [tab2,profile] = SimDCMD1(SN{1},W1,T1,W2,T2,CFG{1});
             results(iExp,:) = [tab1,tab2,cell2table({profile})];
             hbar.iterate(1)
         end

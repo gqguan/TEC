@@ -26,10 +26,9 @@ if nargin == 0
     T1 = 330.65; T2 = 318.15; % [K]
     W1 = 1.217e-4*25; W2 = 1.217e-2; % [kg/s]
     refluxRatio = inf; % 全回流
-    flowPattern = "countercurrent";
-    config = 'classical'; 
+    config = 'permTEHP'; 
 end
-
+flowPattern = "countercurrent";
 % 设定环境温度
 TEXs = [298.15,298.15]; % [K]
 T0 = TEXs(1);
@@ -102,7 +101,7 @@ end
 lb = [273.15+5,0.2];
 ub = [273.15+90,15];
 % 求解器参数
-solOpt = optimoptions(@lsqnonlin,'Display','iter');
+solOpt = optimoptions(@lsqnonlin,'Display','none');
 % 目标函数求解
 switch config
     case 'classical'
@@ -127,17 +126,19 @@ end
 
 if exitflag == 1
     switch config
+        case 'classical'
+            fprintf('%s：done\n',sn)
         case 'extTEHP'
-            fprintf('TEC(%d)热侧平均温度为%.4g[K]、操作%s为%.4g[%s]\n',...
-                iTEC,xsol(1),strIU{opts(2)+1},xsol(2),strUnit{opts(2)+1})
-            fprintf('TEC(%d)热侧水箱热量衡算偏差和平均温度偏差分别为%.4g[W]和%.4g[K]\n',...
-                iTEC,residual)
+            fprintf('%s：TEC(%d)热侧平均温度为%.4g[K]、操作%s为%.4g[%s]\n',...
+                sn,iTEC,xsol(1),strIU{opts(2)+1},xsol(2),strUnit{opts(2)+1})
+%             fprintf('TEC(%d)热侧水箱热量衡算偏差和平均温度偏差分别为%.4g[W]和%.4g[K]\n',...
+%                 iTEC,residual)
             Q2 = Q(2);
         case {'feedTEHP','permTEHP','permTEHP1'}
-            fprintf('TEC(%d)冷侧平均温度为%.4g[K]、操作%s为%.4g[%s]\n',...
-                iTEC,xsol(1),strIU{opts(2)+1},xsol(2),strUnit{opts(2)+1})
-            fprintf('TEC(%d)冷侧水箱热量衡算偏差和平均温度偏差分别为%.4g[W]和%.4g[K]\n',...
-                iTEC,residual)
+            fprintf('%s：TEC(%d)冷侧平均温度为%.4g[K]、操作%s为%.4g[%s]\n',...
+                sn,iTEC,xsol(1),strIU{opts(2)+1},xsol(2),strUnit{opts(2)+1})
+%             fprintf('TEC(%d)冷侧水箱热量衡算偏差和平均温度偏差分别为%.4g[W]和%.4g[K]\n',...
+%                 iTEC,residual)
             Q1 = sum(cellfun(@(x)x(iTEC,1),profile.QTEC));
             Q2 = sum(cellfun(@(x)x(iTEC,2),profile.QTEC));
             [RR,~,~,~,~,~] = CalcReflux(profile,Q1);
