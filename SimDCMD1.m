@@ -5,13 +5,13 @@ function [outTab,profile] = SimDCMD1(sn,W1,T1,W2,T2,config,refluxRatio)
 % extTEHP   - 在传统DCMD系统的基础上外置加热和冷却采用半导体热泵耦合，
 %             采用料液侧部分回流解决TEC放热量大于吸热量的问题，故在该设定下无需输入参数refluxRation
 % feedTEHP  - 在膜组件料液侧集成TEHP单元：TEHP热侧在膜组件料液流道中加热料液，而TEHP冷侧从渗透液吸热
-clear ChkDivergency
 outTab = table;
 WF = nan;
 WP = nan;
 QM = nan;
 TF0 = nan;
 strIU = {'Current','Voltage'};
+strUnit = {'A','V'};
 % 调用公用变量定义，其中包括DuctGeom（流道几何尺寸）、Stream（物料定义）、MembrProps（膜材料性质）
 [~,Stream,MembrProps] = InitStruct();
 % 设定膜组件的热、冷侧进口温度和流率
@@ -26,7 +26,7 @@ if nargin == 0
     T1 = 330.65; T2 = 318.15; % [K]
     W1 = 1.217e-4*25; W2 = 1.217e-2; % [kg/s]
     refluxRatio = inf; % 全回流
-    config = 'feedTEHP'; 
+    config = 'permTEHP'; 
 end
 
 % 设定环境温度
@@ -61,6 +61,7 @@ switch config
         iTEC2 = 1; % 近似绝热
         TECs(2) = TEC_Params.TEC(iTEC2); 
         TEXs(1) = T2; % 即TECs(1)的冷侧温度初设为渗透液进膜组件温度
+        iTEC = 1; % 用于识别TEC(1)还是TEC(2)的传热量计算：这里为TEC(1)
     case {'permTEHP','permTEHP1','permTEHP2'} % DCMD膜组件渗透侧集成半导体热泵
         iTEC1 = 1;
         TECs(1) = TEC_Params.TEC(iTEC1);
@@ -68,6 +69,7 @@ switch config
         TECs(2) = TEC_Params.TEC(iTEC2);
         opts = [TEC_Params.opt1(iTEC2),TEC_Params.opt2(iTEC2)];
         TEXs(2) = T1; % TECs(2)的热侧温度初设为料液进膜组件温度
+        iTEC = 2; % 用于识别TEC(1)还是TEC(2)的传热量计算：这里为TEC(2)
     otherwise
         error('SimDCMD()中输入参数config无法识别！')
 end
@@ -77,7 +79,7 @@ x0 = [T2,1.5];
 lb = [273.15+5,0.2];
 ub = [273.15+90,15];
 % 求解器参数
-solOpt = optimoptions(@lsqnonlin,'Display','none');
+solOpt = optimoptions(@lsqnonlin,'Display','iter');
 % 目标函数求解
 f = @(x)FunSys(x,sIn,TECs,TEXs,membrane,"countercurrent",opts,config);
 [xsol,~,residual,exitflag] = lsqnonlin(f,x0,lb,ub,solOpt);
@@ -85,10 +87,11 @@ f = @(x)FunSys(x,sIn,TECs,TEXs,membrane,"countercurrent",opts,config);
 %% 输出
 
 if exitflag == 1
-    fprintf('TEC(1)冷侧平均温度为%.4g[K]、膜组件渗透侧出口温度TP2为%.4g[K]\n',xsol)
+    fprintf('TEC(1)冷侧平均温度为%.4g[K]、TEC(%d)操作%s为%.4g[%s]\n',...
+        xsol(1),iTEC,strIU{opts(2)+1},xsol(2),strUnit{opts(2)+1})
     fprintf('TEC(1)冷侧水箱热量衡算偏差和平均温度偏差分别为%.4g[W]和%.4g[K]\n',residual)
-    Q1 = sum(cellfun(@(x)x(1,1),profile.QTEC));
-    Q2 = sum(cellfun(@(x)x(1,2),profile.QTEC));
+    Q1 = sum(cellfun(@(x)x(iTEC,1),profile.QTEC));
+    Q2 = sum(cellfun(@(x)x(iTEC,2),profile.QTEC));
     [RR,~,~,~,~,~] = CalcReflux(profile,Q1);
     [Q,QM,WF,WP,TP1,TP2,TF1,TF2,dQ2] = CalcHeat(profile,RR,config);
     % 计算系统总能耗
