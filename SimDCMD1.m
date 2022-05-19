@@ -26,7 +26,8 @@ if nargin == 0
     T1 = 330.65; T2 = 318.15; % [K]
     W1 = 1.217e-4*25; W2 = 1.217e-2; % [kg/s]
     refluxRatio = inf; % 全回流
-    config = 'permTEHP'; 
+    flowPattern = "countercurrent";
+    config = 'extTEHP'; 
 end
 
 % 设定环境温度
@@ -53,7 +54,29 @@ switch config
     case {'classical','extTEHP'} % 相当于未集成半导体热泵的DCMD膜组件
         iTEC1 = 1;
         TECs(1:2) = TEC_Params.TEC(iTEC1);
+        TECOpts = [TEC_Params.opt1(iTEC1),TEC_Params.opt2(iTEC1)];
+        % 计算膜组件内温度分布
+        profile = TEHPiDCMD(sIn,TECs,TEXs,membrane,flowPattern,TECOpts);
+        iStart = strfind(profile.Remarks,'：');
+        switch profile.Remarks(iStart+1:end)
+            case('cocurrent')
+                TP1 = profile.S2(1).Temp;
+                TP2 = profile.S2(end).Temp;
+                W2 = profile.S2(1).MassFlow;
+            case('countercurrent')
+                TP1 = profile.S2(end).Temp;
+                TP2 = profile.S2(1).Temp;
+                W2 = profile.S2(end).MassFlow;
+            otherwise
+                error('CalcHeat()输入参数profile字段Remarks中无有效的流型信息')
+        end
+        % DCMD系统渗透侧所需冷量（对给定的膜组件内温度分布，料液侧回流比不影响渗透侧冷量）
+        [Q,QM,~,WP,TP1,TP2,~,~,~,~] = CalcHeat(profile,inf,config);
+        % 计算膜组件外置半导体制冷功耗
+        iTEC1 = 20;
+        exTECs(1) = TEC_Params.TEC(iTEC1);
         opts = [TEC_Params.opt1(iTEC1),TEC_Params.opt2(iTEC1)];
+        iTEC = 0;
     case {'feedTEHP'} % DCMD膜组件料液侧集成半导体热泵
         iTEC1 = 20;
         TECs(1) = TEC_Params.TEC(iTEC1);
@@ -73,30 +96,46 @@ switch config
     otherwise
         error('SimDCMD()中输入参数config无法识别！')
 end
-% 初值
-x0 = [T2,1.5];
+
 % 边界条件
 lb = [273.15+5,0.2];
 ub = [273.15+90,15];
 % 求解器参数
 solOpt = optimoptions(@lsqnonlin,'Display','iter');
 % 目标函数求解
-f = @(x)FunSys(x,sIn,TECs,TEXs,membrane,"countercurrent",opts,config);
+switch config
+    case 'extTEHP'
+        x0 = [T1,1.5]; % 初值[TEC热侧平均温度，TEC操作电流或电压值]
+        f = @(x)FunSys1(x,exTECs(1),opts,Q(2),mean([TP1,TP2]),profile,config);
+    case {'feedTEHP','permTEHP','permTEHP'}
+        x0 = [T2,1.5]; % 初值[TEC冷侧平均温度，TEC操作电流或电压值]
+        f = @(x)FunSys(x,sIn,TECs,TEXs,membrane,flowPattern,opts,config);
+end
 [xsol,~,residual,exitflag] = lsqnonlin(f,x0,lb,ub,solOpt);
 
 %% 输出
 
 if exitflag == 1
-    fprintf('TEC(1)冷侧平均温度为%.4g[K]、TEC(%d)操作%s为%.4g[%s]\n',...
-        xsol(1),iTEC,strIU{opts(2)+1},xsol(2),strUnit{opts(2)+1})
-    fprintf('TEC(1)冷侧水箱热量衡算偏差和平均温度偏差分别为%.4g[W]和%.4g[K]\n',residual)
-    Q1 = sum(cellfun(@(x)x(iTEC,1),profile.QTEC));
-    Q2 = sum(cellfun(@(x)x(iTEC,2),profile.QTEC));
-    [RR,~,~,~,~,~] = CalcReflux(profile,Q1);
-    [Q,QM,WF,WP,TP1,TP2,TF1,TF2,dQ2] = CalcHeat(profile,RR,config);
-    % 计算系统总能耗
-    E(1) = 0;
-    E(2) = Q1-Q2;
+    switch config
+        case 'extTEHP'
+            fprintf('TEC(%d)热侧平均温度为%.4g[K]、操作%s为%.4g[%s]\n',...
+                iTEC,xsol(1),strIU{opts(2)+1},xsol(2),strUnit{opts(2)+1})
+            fprintf('TEC(%d)热侧水箱热量衡算偏差和平均温度偏差分别为%.4g[W]和%.4g[K]\n',...
+                iTEC,residual)
+            Q2 = Q(2);
+        case {'feedTEHP','permTEHP','permTEHP1'}
+            fprintf('TEC(%d)冷侧平均温度为%.4g[K]、操作%s为%.4g[%s]\n',...
+                iTEC,xsol(1),strIU{opts(2)+1},xsol(2),strUnit{opts(2)+1})
+            fprintf('TEC(%d)冷侧水箱热量衡算偏差和平均温度偏差分别为%.4g[W]和%.4g[K]\n',...
+                iTEC,residual)
+            Q1 = sum(cellfun(@(x)x(iTEC,1),profile.QTEC));
+            Q2 = sum(cellfun(@(x)x(iTEC,2),profile.QTEC));
+            [RR,~,~,~,~,~] = CalcReflux(profile,Q1);
+            [Q,QM,WF,WP,TP1,TP2,TF1,TF2,dQ2] = CalcHeat(profile,RR,config);
+            % 计算系统总能耗
+            E(1) = 0;
+            E(2) = Q1-Q2;
+    end
     SEC = sum(E)/WP/3600/1000; % [kWh/kg]
     % 输出变量
     outTab.RR = RR;
@@ -117,6 +156,17 @@ end
 colNames = {'RR' 'WF' 'WP' 'QM' 'Q1' 'E1' 'Q2' 'E2' 'QTEC' 'NTEC' 'TF0' 'SEC' 'NOTE'};
 sortedColI = cellfun(@(x)find(strcmp(x,outTab.Properties.VariableNames)),colNames);
 outTab = outTab(:,sortedColI);
+
+    function fval = FunSys1(x,TEC,opts,Q2,Tc,profile,cfg)
+        Th = x(1);
+        TEC.(strIU{opts(2)+1}) = x(2);
+        Q = TE_Heat(Th,Tc,TEC,opts(1),opts(2));
+        [RR,~,~,~,~,~] = CalcReflux(profile,Q(1));
+        [Q,QM,WF,WP,TP1,TP2,TF1,TF2,~,TF0] = CalcHeat(profile,RR,cfg);
+        [E(2),~,~,nTEC,newTEC] = CalcTECPower('cooling',Q(2),Th,Tc,TEC,opts);
+        fval(1) = Q(2)-Q2;
+        fval(2) = x(1)-mean([TF0,TF1]);
+    end
 
 function fval = FunSys(x,sIn,TECs,TEXs,membrane,flowPattern,TECOpts,cfg)
     fval = zeros(size(x));
