@@ -120,7 +120,8 @@ function fval = FunSys(x,sIn,TECs,TEXs,membrane,flowPattern,TECOpts,cfg)
     switch cfg
         case 'feedTEHP'
             TECs(1).(strIU{TECOpts(2)+1}) = x(2);
-            TEXs(1) = x(1);            
+            TEXs(1) = x(1); 
+            profile = TEHPiDCMD(sIn,TECs,TEXs,membrane,flowPattern,TECOpts);
             iStart = strfind(profile.Remarks,'：');
             switch profile.Remarks(iStart+1:end)
                 case('cocurrent')
