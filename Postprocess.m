@@ -1,4 +1,4 @@
-function Postprocess(results,opStr)
+function results = Postprocess(results,opStr)
 colorCode = {'#0072BD' '#D95319' '#77AC30' '#A2142F' '#EDB120' '#4DBEEE' '#7E2F8E'};
 colorCode1 = {'#A2142F' '#D95319' '#EDB120' '#77AC30' '#4DBEEE' '#0072BD' ...
               '#A2142F' '#D95319' '#EDB120' '#77AC30' '#4DBEEE' '#0072BD' ...
@@ -9,6 +9,21 @@ lineStyle1 = {'-' '-' '-' '-' '-' '-' ...
               '-.' '-.' '-.' '-.' '-.' '-.' ...
               ':' ':' ':' ':' ':' ':'};
 %% 后处理
+% 删除备注“注意”的数据
+switch input('是【1】/否【0】删除备注需注意的数据组记录：')
+    case 1
+        grpId = arrayfun(@(x)ceil(x/4),1:height(results));
+        idx = false(size(grpId));
+        delGrpId = unique(grpId(cellfun(@(x)contains(x,'【注意】'),results.NOTE)));
+        for i = 1:length(delGrpId)
+            idx = idx|(grpId==delGrpId(i));
+        end
+%         results0 = results;
+        results(idx,:) = [];
+        disp('原数据变量另存为results0')
+    otherwise
+end
+%
 switch opStr
     case 'plotBar'
         % 对比集成半导体热泵与传统DCMD的单位能耗
