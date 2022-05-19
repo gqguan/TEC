@@ -27,7 +27,7 @@ if nargin == 0
     W1 = 1.217e-4*25; W2 = 1.217e-2; % [kg/s]
     refluxRatio = inf; % 全回流
     flowPattern = "countercurrent";
-    config = 'extTEHP'; 
+    config = 'classical'; 
 end
 
 % 设定环境温度
@@ -71,7 +71,8 @@ switch config
                 error('CalcHeat()输入参数profile字段Remarks中无有效的流型信息')
         end
         % DCMD系统渗透侧所需冷量（对给定的膜组件内温度分布，料液侧回流比不影响渗透侧冷量）
-        [Q,QM,~,WP,TP1,TP2,~,~,~,~] = CalcHeat(profile,inf,config);
+        RR = inf;
+        [Q,QM,WF,WP,TP1,TP2,TF1,TF2,~,TF0] = CalcHeat(profile,RR,config);
         % 计算膜组件外置半导体制冷功耗
         iTEC1 = 20;
         exTECs(1) = TEC_Params.TEC(iTEC1);
@@ -104,14 +105,23 @@ ub = [273.15+90,15];
 solOpt = optimoptions(@lsqnonlin,'Display','iter');
 % 目标函数求解
 switch config
+    case 'classical'
+        Tc = mean([TP1,TP2]);
+        Th = T0;
+        E(1) = Q(1);
+        [E(2),~,~,nTEC,~] = CalcTECPower('cooling',Q(2),Th,Tc,exTECs(1),opts);
+        exitflag = 1;
+        Q2 = Q(2);
     case 'extTEHP'
         x0 = [T1,1.5]; % 初值[TEC热侧平均温度，TEC操作电流或电压值]
         f = @(x)FunSys1(x,exTECs(1),opts,Q(2),mean([TP1,TP2]),profile,config);
-    case {'feedTEHP','permTEHP','permTEHP'}
+        [xsol,~,residual,exitflag] = lsqnonlin(f,x0,lb,ub,solOpt);
+    case {'feedTEHP','permTEHP','permTEHP1'}
         x0 = [T2,1.5]; % 初值[TEC冷侧平均温度，TEC操作电流或电压值]
         f = @(x)FunSys(x,sIn,TECs,TEXs,membrane,flowPattern,opts,config);
+        [xsol,~,residual,exitflag] = lsqnonlin(f,x0,lb,ub,solOpt);
 end
-[xsol,~,residual,exitflag] = lsqnonlin(f,x0,lb,ub,solOpt);
+
 
 %% 输出
 
@@ -157,11 +167,15 @@ colNames = {'RR' 'WF' 'WP' 'QM' 'Q1' 'E1' 'Q2' 'E2' 'QTEC' 'NTEC' 'TF0' 'SEC' 'N
 sortedColI = cellfun(@(x)find(strcmp(x,outTab.Properties.VariableNames)),colNames);
 outTab = outTab(:,sortedColI);
 
-    function fval = FunSys1(x,TEC,opts,Q2,Tc,profile,cfg)
-        Th = x(1);
+    function fval = FunSys1(x,TEC,opts,Q2,knownT,profile,cfg)
         TEC.(strIU{opts(2)+1}) = x(2);
-        Q = TE_Heat(Th,Tc,TEC,opts(1),opts(2));
-        [RR,~,~,~,~,~] = CalcReflux(profile,Q(1));
+        switch cfg
+            case 'extTEHP'
+                Tc = knownT;
+                Th = x(1);
+                Q = TE_Heat(Th,Tc,TEC,opts(1),opts(2));
+                [RR,~,~,~,~,~] = CalcReflux(profile,Q(1));
+        end
         [Q,QM,WF,WP,TP1,TP2,TF1,TF2,~,TF0] = CalcHeat(profile,RR,cfg);
         [E(2),~,~,nTEC,newTEC] = CalcTECPower('cooling',Q(2),Th,Tc,TEC,opts);
         fval(1) = Q(2)-Q2;
