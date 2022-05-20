@@ -60,6 +60,7 @@ function [Q,QM,WF,WP,TP1,TP2,TF1,TF2,dQ,TF0] = CalcHeat(profile,R,cfg)
                 WF = (TF1*W1 + R*TF2*WP)/(T0 + R*TF2);
                 dQ2 = Q(2)-Q2;
                 dQ = dQ2;
+                TF0 = nan;
             case {'permTEHP','permTEHP1'}
                 % TEC传热量
                 Q1 = sum(cellfun(@(x)x(2,1),profile.QTEC)); % 膜组件热侧TEC向料液加热量
