@@ -5,6 +5,7 @@ function [outTab,profile] = SimDCMD1(sn,W1,T1,W2,T2,config,refluxRatio)
 % extTEHP   - 在传统DCMD系统的基础上外置加热和冷却采用半导体热泵耦合，
 %             采用料液侧部分回流解决TEC放热量大于吸热量的问题，故在该设定下无需输入参数refluxRation
 % feedTEHP  - 在膜组件料液侧集成TEHP单元：TEHP热侧在膜组件料液流道中加热料液，而TEHP冷侧从渗透液吸热
+eps = 1e-6; % 残差设定值 
 outTab = table;
 WF = nan;
 WP = nan;
@@ -23,10 +24,10 @@ if ~exist('config','var')
 end
 if nargin == 0
     sn = 'test';
-    T1 = 330.65; T2 = 318.15; % [K]
-    W1 = 1.217e-4*25; W2 = 1.217e-2; % [kg/s]
+    T1 = 330.65; T2 = 310.65; % [K]
+    W1 = 1.217e-2; W2 = 6.389e-3; % [kg/s]
     refluxRatio = inf; % 全回流
-    config = 'permTEHP'; 
+    config = 'feedTEHP'; 
 end
 flowPattern = "countercurrent";
 % 设定环境温度
@@ -124,7 +125,7 @@ end
 
 %% 输出
 
-if exitflag == 1
+if norm(residual) < eps
     switch config
         case 'classical'
             fprintf('%s：done\n',sn)
@@ -142,7 +143,7 @@ if exitflag == 1
             Q1 = sum(cellfun(@(x)x(iTEC,1),profile.QTEC));
             Q2 = sum(cellfun(@(x)x(iTEC,2),profile.QTEC));
             [RR,~,~,~,~,~] = CalcReflux(profile,Q1);
-            [Q,QM,WF,WP,TP1,TP2,TF1,TF2,dQ2] = CalcHeat(profile,RR,config);
+            [Q,QM,WF,WP,TP1,TP2,TF1,TF2,~,TF0] = CalcHeat(profile,RR,config);
             % 计算系统总能耗
             E(1) = 0;
             E(2) = Q1-Q2;
@@ -159,9 +160,14 @@ if exitflag == 1
     outTab.E2 = E(2);
     outTab.QTEC = Q2;
     outTab.NTEC = 1;
-    outTab.TF0 = nan;
+    outTab.TF0 = TF0;
     outTab.SEC = SEC;
-    outTab.NOTE = {'ok'};
+    msg = sprintf('exitflag = %d',exitflag);
+    outTab.NOTE = {msg};
+else
+    msg = sprintf('【注意】%s 残差的模%.4g大于设定值%.4g',sn,norm(residual),eps);
+    disp(msg)
+    outTab = fillTab(outTab,WF,WP,QM,nan,1,nan,0,nan,nan,nan,TF0,nan,msg);
 end
 % 整理输出表格各列顺序
 colNames = {'RR' 'WF' 'WP' 'QM' 'Q1' 'E1' 'Q2' 'E2' 'QTEC' 'NTEC' 'TF0' 'SEC' 'NOTE'};
@@ -183,56 +189,77 @@ outTab = outTab(:,sortedColI);
         fval(2) = x(1)-mean([TF0,TF1]);
     end
 
-function fval = FunSys(x,sIn,TECs,TEXs,membrane,flowPattern,TECOpts,cfg)
-    fval = zeros(size(x));
-    switch cfg
-        case 'feedTEHP'
-            TECs(1).(strIU{TECOpts(2)+1}) = x(2);
-            TEXs(1) = x(1); 
-            profile = TEHPiDCMD(sIn,TECs,TEXs,membrane,flowPattern,TECOpts);
-            iStart = strfind(profile.Remarks,'：');
-            switch profile.Remarks(iStart+1:end)
-                case('cocurrent')
-                    TP1 = profile.S2(1).Temp;
-                    TP2 = profile.S2(end).Temp;
-                    W2 = profile.S2(1).MassFlow;
-                case('countercurrent')
-                    TP1 = profile.S2(end).Temp;
-                    TP2 = profile.S2(1).Temp;
-                    W2 = profile.S2(end).MassFlow;
-                otherwise
-                    error('CalcHeat()输入参数profile字段Remarks中无有效的流型信息')
-            end
-            % 膜组件渗透侧进出口温度
-            cp2 = mean([profile.S2.SpecHeat]);
-            Q2TEC = sum(cellfun(@(x)x(1,2),profile.QTEC));
-            fval(1) = Q2TEC-W2*cp2*(TP2-TP1);
-            fval(2) = x(1)-mean([TP1,TP2]);
-        case {'permTEHP','permTEHP1'}
-            TECs(2).(strIU{TECOpts(2)+1}) = x(2);
-            TEXs(2) = x(1);
-            profile = TEHPiDCMD(sIn,TECs,TEXs,membrane,flowPattern,TECOpts);
-            iStart = strfind(profile.Remarks,'：');
-            switch profile.Remarks(iStart+1:end)
-                case('cocurrent')
-                    TP1 = profile.S2(1).Temp;
-                    TP2 = profile.S2(end).Temp;
-                    W2 = profile.S2(1).MassFlow;
-                case('countercurrent')
-                    TP1 = profile.S2(end).Temp;
-                    TP2 = profile.S2(1).Temp;
-                    W2 = profile.S2(end).MassFlow;
-                otherwise
-                    error('CalcHeat()输入参数profile字段Remarks中无有效的流型信息')
-            end
-            % 膜组件料液加热单元出口温度
-            cp1 = mean([profile.S1.SpecHeat]);
-            Q1TEC = sum(cellfun(@(x)x(2,1),profile.QTEC));
-            [RR,~,~,~,~,~] = CalcReflux(profile,Q1TEC);
-            [Q,QM,WF,WP,TP1,TP2,TF1,TF2,dQ1,TF0] = CalcHeat(profile,RR,config);
-            fval(1) = Q1TEC-W1*cp1*(TF1-TF0);
-            fval(2) = x(1)-mean([TF1,TF0]);
+    function fval = FunSys(x,sIn,TECs,TEXs,membrane,flowPattern,TECOpts,cfg)
+        fval = zeros(size(x));
+        switch cfg
+            case 'feedTEHP'
+                TECs(1).(strIU{TECOpts(2)+1}) = x(2);
+                TEXs(1) = x(1); 
+                profile = TEHPiDCMD(sIn,TECs,TEXs,membrane,flowPattern,TECOpts);
+                iStart = strfind(profile.Remarks,'：');
+                switch profile.Remarks(iStart+1:end)
+                    case('cocurrent')
+                        TP1 = profile.S2(1).Temp;
+                        TP2 = profile.S2(end).Temp;
+                        W2 = profile.S2(1).MassFlow;
+                    case('countercurrent')
+                        TP1 = profile.S2(end).Temp;
+                        TP2 = profile.S2(1).Temp;
+                        W2 = profile.S2(end).MassFlow;
+                    otherwise
+                        error('CalcHeat()输入参数profile字段Remarks中无有效的流型信息')
+                end
+                % 膜组件渗透侧进出口温度
+                cp2 = mean([profile.S2.SpecHeat]);
+                Q2TEC = sum(cellfun(@(x)x(1,2),profile.QTEC));
+                fval(1) = Q2TEC-W2*cp2*(TP2-TP1);
+                fval(2) = x(1)-mean([TP1,TP2]);
+            case {'permTEHP','permTEHP1'}
+                TECs(2).(strIU{TECOpts(2)+1}) = x(2);
+                TEXs(2) = x(1);
+                profile = TEHPiDCMD(sIn,TECs,TEXs,membrane,flowPattern,TECOpts);
+                iStart = strfind(profile.Remarks,'：');
+                switch profile.Remarks(iStart+1:end)
+                    case('cocurrent')
+                        TP1 = profile.S2(1).Temp;
+                        TP2 = profile.S2(end).Temp;
+                        W2 = profile.S2(1).MassFlow;
+                    case('countercurrent')
+                        TP1 = profile.S2(end).Temp;
+                        TP2 = profile.S2(1).Temp;
+                        W2 = profile.S2(end).MassFlow;
+                    otherwise
+                        error('CalcHeat()输入参数profile字段Remarks中无有效的流型信息')
+                end
+                % 膜组件料液加热单元出口温度
+                cp1 = mean([profile.S1.SpecHeat]);
+                Q1TEC = sum(cellfun(@(x)x(2,1),profile.QTEC));
+                [RR,~,~,~,~,~] = CalcReflux(profile,Q1TEC);
+                [Q,QM,WF,WP,TP1,TP2,TF1,TF2,dQ1,TF0] = CalcHeat(profile,RR,config);
+                fval(1) = Q1TEC-W1*cp1*(TF1-TF0);
+                fval(2) = x(1)-mean([TF1,TF0]);
+        end
     end
-end
+
+    function oTab = fillTab(iTab,WF,WP,QM,QTEC,nTEC,Q1,E1,Q2,E2,RR,TF0,SEC,msg)
+        oTab = iTab;
+        oTab.WF = WF;
+        oTab.WP = WP;
+        oTab.QM = QM;
+        oTab.QTEC = QTEC;
+        oTab.NTEC = nTEC;
+        oTab.Q1 = Q1;
+        oTab.E1 = E1;
+        oTab.Q2 = Q2;
+        oTab.E2 = E2;
+        oTab.RR = RR;
+        oTab.TF0 = TF0;
+        if exist('SEC','var')
+            oTab.SEC = SEC;
+        end
+        if exist('msg','var')
+            oTab.NOTE = {msg};
+        end
+    end
 
 end
