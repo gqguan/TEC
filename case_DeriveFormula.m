@@ -14,6 +14,7 @@ syms T0 % 环境参数
 % 对于笔记2022/5/6所示系统（classical、extTEHP和permTEHP）
 % 对于回流混合单元CV1（见笔记2022/5/16），能量平衡方程
 WR1 = R*(WF-WP); % 回流比
+cv1MEq = W1 == WF+WR1; % classical、extTEHP或permTEHP1
 cv1EEq = WF*cp1*T0 + WR1*cp1*TF2 == W1*cp1*TF0; % classical或extTEHP
 cv1aEEq = WF*cp1*T0 + WR1*cp1*TF2 == W1*cp1*TF1; % feedTEHP或permTEHP1
 cv1bEEq = WF*cp1*T0 + WR1*cp1*TF0 == W1*cp1*TF1; % permTEHP2
@@ -28,6 +29,13 @@ cv4EEq = Q2+WP*cp2*TP2 == QM+WP*cp2*TMP;
 cv5EEq = WF*cp1*T0+(Q1-Q2) == WP*cp2*TP2+(WF-WP)*cp1*TF2;
 
 % 联立求解
+sol3 = solve([cv1MEq,cv1EEq],[WF,R]);
+disp('对于classical、extTEHP和permTEHP1')
+disp('WF')
+disp(sol3.WF)
+disp('R')
+disp(sol3.R)
+
 sol1 = solve([cv1EEq,cv2EEq,cv3EEq],[WF,TF0,Q1]);
 disp('对于classical、extTEHP和permTEHP1')
 disp('WF = ')
