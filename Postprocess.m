@@ -10,20 +10,24 @@ lineStyle1 = {'-' '-' '-' '-' '-' '-' ...
               ':' ':' ':' ':' ':' ':'};
 %% 后处理
 % 删除备注“注意”的数据
-switch input('需注意的存盘数据处理方式：[1]删除相应的数据组；[2]重置该记录以备重算：')
-    case 0
-        resetIdx = cellfun(@(x)contains(x,'【注意】'),results.NOTE);
-        results.NOTE(resetIdx) = [];
-        disp('重置原数据集中%d个记录的NOTE为空值',sum(resetIdx))
+warnIdx = cellfun(@(x)contains(x,'【注意】'),results.NOTE);
+switch input('需注意的存盘数据处理方式：[1]重置该记录以备重算；[2]删除相应的数据组：')
     case 1
+        resetIdx = warnIdx;
+        disp(results(resetIdx,:))
+        results.NOTE(resetIdx) = {'reset'};
+        fprintf('重置原数据集中%d个记录的NOTE为空值！\n',sum(resetIdx))
+        return
+    case 2
         grpId = arrayfun(@(x)ceil(x/4),1:height(results));
         idx = false(size(grpId));
-        delGrpId = unique(grpId(cellfun(@(x)contains(x,'【注意】'),results.NOTE)));
+        delGrpId = unique(grpId(warnIdx));
         for i = 1:length(delGrpId)
             idx = idx|(grpId==delGrpId(i));
         end
+        disp(results(idx,:))
         results(idx,:) = [];
-        disp('删除原数据集中%d组记录',length(delGrpId))
+        fprintf('删除原数据集中%d组记录！\n',length(delGrpId))
     otherwise
 end
 %
