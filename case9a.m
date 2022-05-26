@@ -56,7 +56,7 @@ switch input('是[1]/否[0]是否从存盘数据中继续计算：')
         load('dat_case9a.mat','results')
         fprintf('载入结果文件%d条记录\n',height(results))
         % 找出未完成计算的案例
-        idx = cellfun(@(x)isempty(x),results.NOTE);
+        idx = cellfun(@(x)isempty(x)|isequal(x,'reset'),results.NOTE);
         plan = dTab(idx,:);
         n = height(plan);
         prompt = sprintf('继续剩余%d个案例的计算',n);
