@@ -8,7 +8,7 @@ function [maxWP,x,tbl] = MaxWP(E,config)
 % 函数调试参数
 if nargin == 0
     E = 30; % [W]
-    config = 'classical';
+    config = 'extTEHP';
 end
 sn = sprintf('%s(E=%.4g[W]）Max.WP',config,E);
 % 膜组件进料参数操作范围
@@ -23,7 +23,8 @@ lb = [W1bnd(1),T1bnd(1),W2bnd(1),T2bnd(1)];
 ub = [W1bnd(2),T1bnd(2),W2bnd(2),T2bnd(2)];
 f = @(x)-WaterProduction(x,config); % 负号表示求最大值
 % 求满足给定能耗条件下的最大产水量
-[x,maxWP] = fmincon(f,x0,A,b,Aeq,beq,lb,ub,@EnergyConsumption,solOpt);
+[x,maxWP,exitflag] = fmincon(f,x0,A,b,Aeq,beq,lb,ub,@EnergyConsumption,solOpt);
+tbl.NOTE{1} = sprintf('%s|%d',tbl.NOTE{1},exitflag);
 maxWP = -maxWP;
 
     % 给定操作条件下的DCMD系统能耗为给定E值
@@ -33,7 +34,7 @@ maxWP = -maxWP;
         W2 = xs(3);
         T2 = xs(4);
         refluxRatio = inf;
-        [outTab,~] = SimDCMD(sn,W1,T1,W2,T2,config,refluxRatio);
+        [outTab,~] = SimDCMD1(sn,W1,T1,W2,T2,config,refluxRatio);
         c = -1;
         ceq = outTab.E1+outTab.E2-E;
     end
@@ -45,12 +46,12 @@ maxWP = -maxWP;
         W2 = xs(3);
         T2 = xs(4);
         refluxRatio = inf;
-        [outTab,profile] = SimDCMD(sn,W1,T1,W2,T2,cfg,refluxRatio);
+        [outTab,profile] = SimDCMD1(sn,W1,T1,W2,T2,cfg,refluxRatio);
         fval = outTab.WP;
         SN = {sn};
         CFG = {cfg};
         tab1 = [cell2table(SN),cell2table(CFG),table(W1,T1,W2,T2)];
-        tbl = [tab1,outTab,cell2table({profile})];
+        tbl = [tab1,outTab,cell2table({profile},'VariableNames',{'profile'})];
     end
 
 end

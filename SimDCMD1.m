@@ -107,8 +107,11 @@ switch config
     case 'classical'
         Tc = mean([TP1,TP2]);
         Th = T0;
+        RR = inf;
+        [Q,QM,WF,WP,TP1,TP2,TF1,TF2,~,TF0] = CalcHeat(profile,RR,config);
         E(1) = Q(1);
         [E(2),~,~,nTEC,~] = CalcTECPower('cooling',Q(2),Th,Tc,exTECs(1),opts);
+        residual = 0;
         exitflag = 1;
         Q2 = Q(2);
     case 'extTEHP' % 计算稳态操作TEC操作条件（详见2022/5/21笔记）
@@ -127,10 +130,10 @@ end
 if norm(residual) < eps
     switch config
         case 'classical'
-            fprintf('%s：done\n',sn)
+%             fprintf('%s：done\n',sn)
         case 'extTEHP'
-            fprintf('%s：外置TEC热侧平均温度为%.4g[K]、操作%s为%.4g[%s]\n',...
-                sn,xsol(1),strIU{opts(2)+1},xsol(2),strUnit{opts(2)+1})
+%             fprintf('%s：外置TEC热侧平均温度为%.4g[K]、操作%s为%.4g[%s]\n',...
+%                 sn,xsol(1),strIU{opts(2)+1},xsol(2),strUnit{opts(2)+1})
 %             fprintf('TEC(%d)热侧水箱热量衡算偏差和平均温度偏差分别为%.4g[W]和%.4g[K]\n',...
 %                 iTEC,residual)
             QM = sum(profile.QM); % 跨膜传热量[W]
@@ -147,8 +150,8 @@ if norm(residual) < eps
             E(1) = 0;
             E(2) = Q1-Q2;
         case {'feedTEHP','permTEHP','permTEHP1'}
-            fprintf('%s：TEC(%d)冷侧平均温度为%.4g[K]、操作%s为%.4g[%s]\n',...
-                sn,iTEC,xsol(1),strIU{opts(2)+1},xsol(2),strUnit{opts(2)+1})
+%             fprintf('%s：TEC(%d)冷侧平均温度为%.4g[K]、操作%s为%.4g[%s]\n',...
+%                 sn,iTEC,xsol(1),strIU{opts(2)+1},xsol(2),strUnit{opts(2)+1})
 %             fprintf('TEC(%d)冷侧水箱热量衡算偏差和平均温度偏差分别为%.4g[W]和%.4g[K]\n',...
 %                 iTEC,residual)
             Q1 = sum(cellfun(@(x)x(iTEC,1),profile.QTEC));
