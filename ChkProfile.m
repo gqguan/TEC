@@ -37,6 +37,10 @@ i = 5;
 Items{i} = 'DCMD膜组件中冷侧TEC2吸热量（W）';
 Results{i} = Q2TEC2;
 [Criteria{i},Remarks{i}] = ChkIt(Results{i});
+i = 6;
+Items{i} = 'DCMD膜组件输入输出能量偏差（W）';
+Results{i} = sum([Results{2:5}]);
+[Criteria{i},Remarks{i}] = ChkIt(Results{i},1e-4);
 % 输出
 Items = reshape(Items,[],1);
 Criteria = reshape(Criteria,[],1);
