@@ -12,7 +12,7 @@ addpath([homePath(1:idxPath(2)),'Common\'])
 
 %% 模拟DCMD系统能耗情况
 CFGLvls = {'classical'}; %  DCMD配置方案
-ELvls = {5 6.25 7.50 8.75 10 11.25 12.50 13.75 15 16.25 17.50 18.75 20};
+ELvls = num2cell(5:1.25/2:20);
 % 根据各因素水平生成全因素实验方案
 dMat = fullfact([length(CFGLvls),length(ELvls)]);
 nLvl = max(dMat);

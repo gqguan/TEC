@@ -10,8 +10,7 @@ homePath = cd;
 idxPath = strfind(homePath,'\');
 addpath([homePath(1:idxPath(2)),'Common\'])
 
-%% 模拟DCMD系统能耗情况
-CFGLvls = {'classical','extTEHP','feedTEHP','permTEHP'}; %  DCMD配置方案
+%%s = {'classical','extTEHP','feedTEHP','permTEHP'}; %  DCMD配置方案
 ELvls = {25 30 35};
 % 根据各因素水平生成全因素实验方案
 dMat = fullfact([length(CFGLvls),length(ELvls)]);
