@@ -4,6 +4,30 @@
 
 function [profile,sOut] = TEHPiDCMD(sIn,TECs,TEXs,membrane,flowPattern,opts)
 %% 初始化
+% 调试用输入参数
+if nargin == 0
+    [~,s1,membrane] = InitStruct();
+    T1 = 273.15+50; T2 = 273.15+45; % [K]
+    W1 = 1.217e-2; W2 = 6.389e-3; % [kg/s]
+    s1.Temp = T1;
+    s1.MassFlow = W1;
+    sIn(1) = DCMD_PackStream(s1); % 膜组件料液侧进料
+    s2 = s1;
+    s2.Temp = T2;
+    s2.MassFlow = W2;
+    sIn(2) = DCMD_PackStream(s2); % 膜组件渗透侧进料
+    iTECs = [20,1];
+    T0 = 298.15;
+    TEXs = [T0,T0];
+    % set properties for all TECs
+    load('TEC_Params.mat','TEC_Params') % 载入已有的TEC计算参数
+    TECs(1) = TEC_Params.TEC(iTECs(1));
+    % TEC计算参数
+    opts = [TEC_Params.opt1(iTECs(1)),TEC_Params.opt2(iTECs(1))];
+    TECs(2) = TEC_Params.TEC(iTECs(2)); 
+    flowPattern = "countercurrent";
+    opts = [0 0];
+end
 nCV = 20;
 eps = 1e-8;
 % 添加\Common目录以便调用自定义公用函数
@@ -17,7 +41,7 @@ logger.setFilename(logFilename);
 
 %% 检查输入参数
 % 检查输入变量数量
-if nargin == 6
+if nargin == 6 || nargin == 0
     % 检查输入变量类型
     [flag,msg] = ChkArgType({'struct','struct','double','struct','string','double'}, ...
         sIn,TECs,TEXs,membrane,flowPattern,opts);
