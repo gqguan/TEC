@@ -54,6 +54,10 @@ TEC = TE_MaterialProp((Th+Tc)/2,TEC,opt1);
 a = TEC.SeebeckCoefficient;
 R = TEC.ElecConductance;
 K = TEC.ThermConductance;
+if all([a R K] == 0)
+    Q = [0 0];
+    return
+end
 switch opt2
     case(0)
         I = TEC.Current;
