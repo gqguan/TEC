@@ -28,6 +28,11 @@ if exist('TEC','var')
     end
 else
     clear
+    TEC = struct('NumTC', 199, 'NumRatio', 0, 'GeomFactor', 2.6e-3, ...
+                 'HTCoefficient', 270, 'HTArea', 40*40e-6, ...
+                 'SeebeckCoefficient', [], 'ElecConductance', [], ...
+                 'ThermConductance', [], 'Voltage', [], 'Current', [], ...
+                 'Parameters', []);
 end
 
 % 半导体制冷片的性能测试实验数据
@@ -85,6 +90,7 @@ end
 %% 输出结果
 [~,output] = fun(x);
 % 输入TEC部件号
+output.Status = 'normal'
 output.pid = input('Input TEC part no.: ', 's');
 % 参数优化方法
 output.opt1 = opt1;

@@ -1,7 +1,8 @@
-function [profile,SOUT] = TEHPiDCMD2(Profile0,SINs,TEXs,membrane)
+function [profile,SOUT] = TEHPiDCMD2(SINs,TECs,TEXs,membrane,flowPattern,opts)
 % 调试用输入参数
-if nargin < 4
+if nargin == 0
     [DuctGeom,s1,membrane] = InitStruct();
+    flowPattern = 'countercurrent';
     T1 = 273.15+50; T2 = 273.15+45; % [K]
     W1 = 1.217e-2; W2 = 6.389e-3; % [kg/s]
     s1.Temp = T1;
@@ -11,7 +12,7 @@ if nargin < 4
     s2.Temp = T2;
     s2.MassFlow = W2;
     SINs(2) = DCMD_PackStream(s2); % 膜组件渗透侧进料
-    iTECs = [20,1];
+    iTECs = [23,21];
     T0 = 298.15;
     TEXs = [T0,T0];
     % set properties for all TECs
@@ -19,7 +20,11 @@ if nargin < 4
     TECs(1) = TEC_Params.TEC(iTECs(1));
     % TEC计算参数
     opts = [TEC_Params.opt1(iTECs(1)),TEC_Params.opt2(iTECs(1))];
-    TECs(2) = TEC_Params.TEC(iTECs(2)); 
+    TECs(2) = TEC_Params.TEC(iTECs(2));
+else
+    [DuctGeom,~,~] = InitStruct();
+    T1 = SINs(1).Temp; T2 = SINs(2).Temp;
+    W1 = SINs(1).MassFlow; W2 = SINs(2).MassFlow;
 end
 % 参数
 nMesh = 21; % 包括两端点
@@ -27,7 +32,7 @@ nMesh = 21; % 包括两端点
 s2x0 = [mean([T1,T2]),W2];
 s2lb = [273.2,W2];
 s2ub = [T1,W2*10];
-solOpts1 = optimoptions(@lsqnonlin,'Display','iter');
+solOpts1 = optimoptions(@lsqnonlin,'Display','none');
 f = @(x)CalcS2in(x)-[SINs(2).Temp,SINs(2).MassFlow];
 s2x = lsqnonlin(f,s2x0,s2lb,s2ub,solOpts1);
 
@@ -60,14 +65,21 @@ s2x = lsqnonlin(f,s2x0,s2lb,s2ub,solOpts1);
         fval(2) = S2(end).MassFlow;
         if nargout > 1
             profile.T = reshape(Ts,[4,nMesh]);
-            profile.T = [profile.T;[S1.Temp];[S2.Temp]];
+            profile.T(:,end) = []; % 删除壁温最后一个无效节点，见Eqns()中iMesh循环
+            profile.T = [profile.T(:,1),profile.T(:,1:end-1)+0.5*diff(profile.T,1,2)];
+            S1T = [S1.Temp]; S1T(end) = [];
+            S2T = [S2.Temp]; S2T(end) = [];
+%             S1T = interp1(linspace(0,1,nMesh),[S1.Temp],linspace(0,1,nMesh-1));
+%             S2T = interp1(linspace(0,1,nMesh),[S2.Temp],linspace(0,1,nMesh-1));
+            profile.T = [profile.T;S1T;S2T];
             profile.T = profile.T([1,5,2,3,6,4],:);
             profile.QTEC = QTEC;
             profile.QM = QM;
             profile.SM = SM;
             profile.S1 = S1;
             profile.S2 = S2;
-            profile.Remarks = sprintf('exitflag = %d',exitflag);
+%             profile.Remarks = sprintf('DCMD膜组件流动模式：%s；exitflag（%d）',flowPattern,exitflag);
+            profile.Remarks = sprintf('DCMD膜组件流动模式：%s',flowPattern);
             SOUT(1) = S1(end);
             SOUT(2) = S2(1);
         end
@@ -109,7 +121,7 @@ s2x = lsqnonlin(f,s2x0,s2lb,s2ub,solOpts1);
             QWP = S2(iMesh).Enthalpy;
             QEP = QWP+QSP-QNP;
             S2(iMesh+1).Enthalpy = QEP;
-            S2(iMesh+1).MassFlow = S2(iMesh).MassFlow+JM(iMesh)*AN(2);
+            S2(iMesh+1).MassFlow = S2(iMesh).MassFlow-JM(iMesh)*AN(2);
             S2(iMesh+1).Temp = S2(iMesh+1).Enthalpy/S2(iMesh+1).MassFlow/S2(iMesh+1).SpecHeat;
             TP = mean([S2(iMesh).Temp,S2(iMesh+1).Temp]);
             y(3,iMesh) = KP*(x(3,iMesh)-TP)-QNP;

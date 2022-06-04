@@ -5,7 +5,7 @@ function [outTab,profile] = SimDCMD2(sn,W1,T1,W2,T2,config,refluxRatio)
 % extTEHP   - 在传统DCMD系统的基础上外置加热和冷却采用半导体热泵耦合，
 %             采用料液侧部分回流解决TEC放热量大于吸热量的问题，故在该设定下无需输入参数refluxRation
 % feedTEHP  - 在膜组件料液侧集成TEHP单元：TEHP热侧在膜组件料液流道中加热料液，而TEHP冷侧从渗透液吸热
-eps = 1e-6; % 残差设定值 
+eps = 1e-4; % 残差设定值 
 outTab = table;
 WF = nan;
 WP = nan;
@@ -27,7 +27,7 @@ if nargin == 0
     T1 = 323.15; T2 = 303.15; % [K]
     W1 = 6.085e-4; W2 = 6.085e-4; % [kg/s]
     refluxRatio = inf; % 全回流
-    config = 'permTEHP'; 
+    config = 'extTEHP'; 
 end
 flowPattern = "countercurrent";
 % 设定环境温度
@@ -52,7 +52,7 @@ load('TEC_Params.mat','TEC_Params') % 载入已有的TEC计算参数
 
 switch config
     case {'classical','extTEHP'} % 相当于未集成半导体热泵的DCMD膜组件
-        iTEC1 = 21;
+        iTEC1 = 1;
         TECs(1:2) = TEC_Params.TEC(iTEC1);
         TECOpts = [TEC_Params.opt1(iTEC1),TEC_Params.opt2(iTEC1)];
         % 计算膜组件内温度分布
@@ -73,12 +73,12 @@ switch config
                 error('CalcHeat()输入参数profile字段Remarks中无有效的流型信息')
         end        
         % 计算膜组件外置半导体制冷功耗
-        iTEC1 = 23;
+        iTEC1 = 22;
         exTECs(1) = TEC_Params.TEC(iTEC1);
         opts = [TEC_Params.opt1(iTEC1),TEC_Params.opt2(iTEC1)];
         iTEC = 0;
     case {'feedTEHP'} % DCMD膜组件料液侧集成半导体热泵
-        iTEC1 = 23;
+        iTEC1 = 22;
         TECs(1) = TEC_Params.TEC(iTEC1);
         opts = [TEC_Params.opt1(iTEC1),TEC_Params.opt2(iTEC1)];
         iTEC2 = 21; % 近似绝热
@@ -88,7 +88,7 @@ switch config
     case {'permTEHP','permTEHP1','permTEHP2'} % DCMD膜组件渗透侧集成半导体热泵
         iTEC1 = 21;
         TECs(1) = TEC_Params.TEC(iTEC1);
-        iTEC2 = 23;
+        iTEC2 = 22;
         TECs(2) = TEC_Params.TEC(iTEC2);
         opts = [TEC_Params.opt1(iTEC2),TEC_Params.opt2(iTEC2)];
         TEXs(2) = T1; % TECs(2)的热侧温度初设为料液进膜组件温度
@@ -115,7 +115,7 @@ switch config
         exitflag = 1;
         Q2 = Q(2);
     case 'extTEHP' % 计算稳态操作TEC操作条件（详见2022/5/21笔记）
-        x0 = [T1,1.5]; % 初值[TEC热侧平均温度，TEC操作电流或电压值]
+        x0 = [mean([T0,TF2]),1.5]; % 初值[TEC热侧平均温度，TEC操作电流或电压值]
         f = @(x)TECHeatBalance(x,exTECs(1),opts,W1,T1,W2,TP2,profile);
         [xsol,~,residual,exitflag] = lsqnonlin(f,x0,lb,ub,solOpt);
     case {'feedTEHP','permTEHP','permTEHP1'}
@@ -149,7 +149,7 @@ if norm(residual) < eps
             % 计算系统总能耗
             E(1) = 0;
             E(2) = Q1-Q2;
-        case {'feedTEHP','permTEHP','permTEHP1'}
+        case 'feedTEHP'
 %             fprintf('%s：TEC(%d)冷侧平均温度为%.4g[K]、操作%s为%.4g[%s]\n',...
 %                 sn,iTEC,xsol(1),strIU{opts(2)+1},xsol(2),strUnit{opts(2)+1})
 %             fprintf('TEC(%d)冷侧水箱热量衡算偏差和平均温度偏差分别为%.4g[W]和%.4g[K]\n',...
@@ -161,6 +161,15 @@ if norm(residual) < eps
             % 计算系统总能耗
             E(1) = 0;
             E(2) = Q1-Q2;
+        case {'permTEHP','permTEHP1'}
+            RR = inf; % 回流比和DCMD系统进料量
+            WP = sum(arrayfun(@(x)x.MassFlow,profile.SM)); % 跨膜渗透量[kg/s]
+            WF = WP;
+            QM = sum(profile.QM); % 跨膜传热量[W]
+            Q2 = Q(2);
+            % 计算系统总能耗
+            E(1) = 0;
+            E(2) = Q(1)-Q(2);
     end
     SEC = sum(E)/WP/3600/1000; % [kWh/kg]
     % 输出变量
@@ -259,12 +268,14 @@ outTab = outTab(:,sortedColI);
                     otherwise
                         error('CalcHeat()输入参数profile字段Remarks中无有效的流型信息')
                 end
+                TF1 = profile.S1(1).Temp;
+                TF2 = profile.S1(end).Temp;
                 % 膜组件料液加热单元出口温度
                 cp1 = mean([profile.S1.SpecHeat]);
-                Q1TEC = sum(cellfun(@(x)x(2,1),profile.QTEC));
-                [RR,~,~,~,~,~] = CalcReflux(profile,Q1TEC);
-                [Q,QM,WF,WP,TP1,TP2,TF1,TF2,dQ1,TF0] = CalcHeat(profile,RR,config);
-                fval(1) = Q1TEC-W1*cp1*(TF1-TF0);
+                Q(1) = sum(cellfun(@(x)x(2,1),profile.QTEC));
+                Q(2) = sum(cellfun(@(x)x(2,2),profile.QTEC));
+                TF0 = 2*x(1)-TF1;
+                fval(1) = Q(1)-W1*cp1*(TF1-TF0);
                 fval(2) = x(1)-mean([TF1,TF0]);
         end
     end

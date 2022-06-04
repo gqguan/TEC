@@ -51,22 +51,22 @@ switch opStr
         fprintf('采用extTEHP、feedTEHP和permTEHP的平均能耗比分别为%.4g、%.4g和%.4g\n',mean(RSEC,'omitnan'))
         fprintf('最低能耗分别为%.4g、%.4g和%.4g\n',min(RSEC,[],'omitnan'))
     case 'TProfile' % 绘制膜组件中的温度侧形
-        snList = {113 114 115 116};
+        snList = {14 15 16};
         iLineMarked = ones(1,length(snList));
         skipLineNum = 6;
         for i = 1:length(snList), iLineMarked(i) = iLineMarked(i)+(i-1)*skipLineNum; end
         TProfile = cell2mat(cellfun(@(x)results.profile(x,1).T',snList,'UniformOutput',false));
         p = plot(TProfile);
-        xlim([1,size(TProfile,1)])
+        xlim([1,size(TProfile,1)-1])
         xticks([])
-        for i=1:length(p), p(i).Color = colorCode1{i}; p(i).LineStyle = lineStyle1{i}; end
+        for i=1:length(p), p(i).Color = colorCode1{i}; p(i).LineStyle = lineStyle1{i}; p(i).LineWidth = 1.5; end
         legendStr = cellfun(@(x)strcat(regexp(results.SN{x},'ffd\(\w*\)\|','match'),results.CFG(x)),snList);
         legend(p(iLineMarked),legendStr)
         xlabel('Length along DCMD module')
         ylabel('Temperature (K)')
         hold off
     case 'TEC' 
-        snList = {113 114 115 116};
+        snList = {13 14 15 16};
         for i = 1:length(snList)
             iSn = snList{i};
             cfg = results.CFG{iSn};
