@@ -32,7 +32,10 @@ x0 = [T0;T1;mean([T1,mean([T1,T2])]);mean([T2,mean([T1,T2])]);T2;T0]*ones(1,nMes
 x0 = reshape(x0,1,[]);
 lb = 273.2*ones(size(x0));
 ub = 370.2*ones(size(x0));
-solOpt = optimoptions(@lsqnonlin,'Display','iter','Algorithm','levenberg-marquardt','MaxFunctionEvaluations',5e5,'MaxIterations',5000);
+solOpt = optimoptions(@lsqnonlin,'Display','iter',...
+    'Algorithm','levenberg-marquardt',...
+    'MaxFunctionEvaluations',5e5,...
+    'MaxIterations',5000);
 f = @(xs)Eqns(xs,TEXs,TECs,SINs,membrane);
 xsol = lsqnonlin(f,x0,[],[],solOpt);
 disp(xsol)
@@ -106,16 +109,18 @@ disp(xsol)
         JH = zeros(1,nMesh);
         [~,KF] = DCMD_TM(SINs(1),0);
         [~,KP] = DCMD_TM(SINs(2),0);
+        for iMesh = 2:nMesh-1
+            S1(iMesh).Temp = x(2,iMesh);
+            S2(iMesh).Temp = x(5,iMesh);
+        end
         for iMesh = 1:nMesh-1
             QTEC1 = TE_Heat(x(1,iMesh),TEXs(1),TECs(1),opts(1),opts(2));
-            S1(iMesh).Temp = x(2,iMesh);
             [JH(iMesh),JM(iMesh)] = JHM(SINs,x(3,iMesh),x(4,iMesh),membrane);
-            S2(iMesh).Temp = x(5,iMesh);
-            QTEC2 = TE_Heat(TEXs(2),x(6,iMesh),TECs(2),opts(1),opts(2));
             S1(iMesh+1).MassFlow = S1(iMesh).MassFlow+JM(iMesh)*AN(1);
-            S2(iMesh+1).MassFlow = S2(iMesh).MassFlow+JM(iMesh)*AN(1);
+            S2(iMesh+1).MassFlow = S2(iMesh).MassFlow+JM(iMesh)*AN(2);
             S1(iMesh+1) = DCMD_PackStream(S1(iMesh+1),DuctGeom);
-            S2(iMesh+1) = DCMD_PackStream(S2(iMesh+1),DuctGeom);
+            S2(iMesh+1) = DCMD_PackStream(S2(iMesh+1),DuctGeom);            
+            QTEC2 = TE_Heat(TEXs(2),x(6,iMesh),TECs(2),opts(1),opts(2));
             QFN = QTEC1(1)/TECs(1).HTArea*AN(1);
             QFW = S1(iMesh).Enthalpy;
             QFS = JH(iMesh)*AN(1);
