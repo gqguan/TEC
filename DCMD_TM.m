@@ -22,6 +22,8 @@ function [TM, h] = DCMD_TM(Stream, JH)
 %  2019-08-24: add output of heat transfer coefficient
 %  
 % initialize
+g   = 9.81;
+dT  = 3;
 L   = 0.008; % characteristic length [m]
 T   = Stream.Temp;
 k   = Stream.ThermCond;
@@ -30,14 +32,18 @@ rho = Stream.Density;
 mu  = Stream.Viscosity;
 cp  = Stream.SpecHeat;
 Dh  = 4*40*6/(2*(40+6))*1e-3; % hydraulic diameter [m]
+beta = 1/298.2;
 % 
-% eq = Nu == 3.66+0.19*Gz^0.8/(1+0.117*Gz^0.467); % Guan2012IECR eq.(6)
 Re = L*u*rho/mu;
 Pr = cp*mu/k;
+Gr = g*beta*dT*L^3/(mu/rho);
 Gz = Dh/0.006*Re*Pr;
+Nu = 3.66+0.19*Gz^0.8/(1+0.117*Gz^0.467); % Guan2012IECR eq.(6)
+% Nu = 0.74*Re^0.2*(Gr*Pr)^0.1*Pr^0.2;
 % calculate total heat transfer coefficient
-h = k/L*(3.66+0.19*Gz^0.8/(1+0.117*Gz^0.467));
+h = k/L*Nu;
 % output
 TM = T-JH/h;
 %
+
 end
