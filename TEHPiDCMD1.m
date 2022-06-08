@@ -27,119 +27,99 @@ else
     W1 = SINs(1).MassFlow; W2 = SINs(2).MassFlow;
 end
 % 参数
-nMesh = 21; % 包括两端点
-x0 = [T0;T1;mean([T1,mean([T1,T2])]);mean([T2,mean([T1,T2])]);T2;T0]*ones(1,nMesh-1);
-x0 = reshape(x0,1,[]);
-lb = 273.2*ones(size(x0));
-ub = 370.2*ones(size(x0));
-solOpt = optimoptions(@lsqnonlin,'Display','iter',...
-    'Algorithm','levenberg-marquardt',...
-    'MaxFunctionEvaluations',5e5,...
-    'MaxIterations',5000);
-f = @(xs)Eqns(xs,TEXs,TECs,SINs,membrane);
-xsol = lsqnonlin(f,x0,[],[],solOpt);
-disp(xsol)
+sol1Opt = optimoptions(@lsqnonlin,'Display','iter',...
+                                 'Algorithm','levenberg-marquardt');
+sol2Opt = optimoptions(@lsqnonlin,'Display','none',...
+                                 'Algorithm','levenberg-marquardt');
+% 计算初值
+nMesh = 2; % 包括两端点
+x0 = [SINs(2).MassFlow,mean([SINs.Temp])];
+[x0,~,~,exitflag] = lsqnonlin(@CalcS2out,x0,[],[],sol2Opt);
+if exitflag == 0
+    prompt1 = sprintf('【注意】exitflag = 0');
+else
+    prompt1 = sprintf('exitflag = %d',exitflag);
+    % 计算集成半导体热泵膜组件中的温度侧形
+    nMesh = 21;
+    QTEC = cell(1,nMesh-1);
+    Ts = zeros(6,nMesh-1);
+    S1(1:nMesh) = SINs(1);
+    S2(1:nMesh) = SINs(2);
+    SM(1:nMesh-1) = SINs(1);
+    QM = zeros(1,nMesh-1);
+    x = lsqnonlin(@CalcS2out,x0,[],[],sol2Opt); % 逆流操作计算满足渗透侧进口条件的出口流率及温度; 
+end
+prompt = sprintf('%s；DCMD膜组件流动模式：%s',prompt1,flowPattern);
+profile.T = Ts;
+profile.QTEC = QTEC;
+profile.QM = QM;
+profile.SM = SM;
+profile.S1 = S1;
+profile.S2 = S2;
+profile.Remarks = prompt;
+SOUT(1) = S1(end);
+SOUT(2) = S2(1);
 
-% 输出结果
-% [~,QTEC,QM,SM,S1,S2] = Eqns(Ts,TEXs,TECs,SIN,membrane);
-% profile.T = reshape(Ts,[6,nMesh]);
-% profile.QTEC = QTEC;
-% profile.QM = QM;
-% profile.SM = SM;
-% profile.S1 = S1;
-% profile.S2 = S2;
-% profile.Remarks = sprintf('exitflag = %d',exitflag);
-% SOUT(1) = S1(end);
-% SOUT(2) = S2(1);
+    function y = CalcS2out(x)
+        nCV = nMesh-1;
+        SWs(:,1) = SINs;
+        SWs(2,1).MassFlow = x(1);
+        SWs(2,1).Temp = x(2);
+        SWs(2,1) = DCMD_PackStream(SWs(2,1),DuctGeom);
+        SEs(:,nCV) = SINs;
+        Ts = zeros(6,(nMesh-1));
+        for iCV = 1:nCV
+            [Ts(:,iCV),SEs(:,iCV),SM(iCV),QM(iCV),QTEC{iCV}] = HBCV(SWs(:,iCV));
+            SWs(:,iCV+1) = SEs(:,iCV);
+        end
+        y(1) = SEs(2,end).MassFlow-SINs(2).MassFlow;
+        y(2) = SEs(2,end).Temp-SINs(2).Temp;
+        S1 = SWs(1,:);
+        S2 = SWs(2,:);
+    end
 
-%     % 求解膜组件逆流操作渗透侧出口温度和流率
-%     function [fval,profile,SOUT] = CalcS2in(x)
-%         s1in = SINs(1);
-%         s2out = SINs(2);
-%         s2out.MassFlow = x(2); 
-%         s2out.Temp = x(1);
-%         s2out.Enthalpy = s2out.MassFlow*s2out.SpecHeat*s2out.Temp;
-%         % 初值
-%         TSH = T1+1;
-%         TMF = mean([T1,mean([T1,T2])]);
-%         TMP = mean([T2,mean([T1,T2])]);
-%         TSC = TEXs(2);
-%         x0 = reshape([TSH;TMF;TMP;TSC]*ones(1,nMesh),[],1);
-%         % 求解温度侧形
-%         lb = ones(size(x0))*273.16;
-%         ub = ones(size(x0))*(273.15+98);
-%         fun = @(x)Eqns(x,TEXs,TECs,[s1in,s2out],membrane);
-%         % solOpts = optimoptions(@lsqnonlin,'Display','iter','Algorithm','trust-region-reflective');
-%         % [Ts,~,residual,exitflag] = lsqnonlin(fun,x0,lb,ub,solOpts);
-%         solOpts = optimoptions(@lsqnonlin,'Display','none','Algorithm','levenberg-marquardt');
-%         [Ts,~,residual,exitflag] = lsqnonlin(fun,x0,[],[],solOpts);
-%         [~,QTEC,QM,SM,S1,S2] = Eqns(Ts,TEXs,TECs,[s1in,s2out],membrane);
-%         fval(1) = S2(end).Temp;
-%         fval(2) = S2(end).MassFlow;
-%         if nargout > 1
-%             profile.T = reshape(Ts,[4,nMesh]);
-%             profile.T(:,end) = []; % 删除壁温最后一个无效节点，见Eqns()中iMesh循环
-%             profile.T = [profile.T(:,1),profile.T(:,1:end-1)+0.5*diff(profile.T,1,2)];
-%             S1T = [S1.Temp]; S1T(end) = [];
-%             S2T = [S2.Temp]; S2T(end) = [];
-%             profile.T = [profile.T;S1T;S2T];
-%             profile.T = profile.T([1,5,2,3,6,4],:);
-%             profile.QTEC = QTEC;
-%             profile.QM = QM;
-%             profile.SM = SM;
-%             profile.S1 = S1;
-%             profile.S2 = S2;
-%             profile.Remarks = sprintf('DCMD膜组件流动模式：%s',flowPattern);
-%             SOUT(1) = S1(end);
-%             SOUT(2) = S2(1);
-%         end
-%     end
+    function [Ts,SOUTs,SM,QM,QTEC] = HBCV(SINs)
+        Ts0 = [T1 mean([T1,mean([T1,T2])]) mean([T2,mean([T1,T2])]) T2];
+        f1 = @(x)CalcHB(x,TEXs,TECs,SINs,membrane);
+        Ts = lsqnonlin(f1,Ts0,[],[],sol2Opt);
+        [~,SOUTs,Ts,SM,QM,QTEC] = CalcHB(Ts,TEXs,TECs,SINs,membrane);
+    end
 
-    % 能量平衡方程组
-    function [fval,QTEC,QM,SM,S1,S2] = Eqns(xs,TEXs,TECs,SINs,membrane)
+    function [y,SEs,Ts,SM,QM,QTEC] = CalcHB(x,TEXs,TECs,SWs,membrane)
+        TSH = x(1); TMF = x(2); TMP = x(3); TSC = x(4);
+        QFW = SWs(1).Enthalpy; QPW = SWs(2).Enthalpy;
+        SM = SWs(2);
         AN(1:2) = 0.040*0.040/(nMesh-1); % 膜组件料液侧(1)和渗透侧(2)法向面积
-        x = reshape(xs,[6,nMesh-1]);
-        y = zeros(size(x));
-        QTEC = cell(1,nMesh-1);
-        QM = zeros(1,nMesh-1);
-        SM(1:nMesh-1) = SINs(2);
-        S1(1:nMesh) = SINs(1);
-        S2(1:nMesh) = SINs(2);
-        JM = zeros(1,nMesh);
-        JH = zeros(1,nMesh);
-        [~,KF] = DCMD_TM(SINs(1),0);
-        [~,KP] = DCMD_TM(SINs(2),0);
-        for iMesh = 2:nMesh-1
-            S1(iMesh).Temp = x(2,iMesh);
-            S2(iMesh).Temp = x(5,iMesh);
-        end
-        for iMesh = 1:nMesh-1
-            QTEC1 = TE_Heat(x(1,iMesh),TEXs(1),TECs(1),opts(1),opts(2));
-            [JH(iMesh),JM(iMesh)] = JHM(SINs,x(3,iMesh),x(4,iMesh),membrane);
-            S1(iMesh+1).MassFlow = S1(iMesh).MassFlow+JM(iMesh)*AN(1);
-            S2(iMesh+1).MassFlow = S2(iMesh).MassFlow+JM(iMesh)*AN(2);
-            S1(iMesh+1) = DCMD_PackStream(S1(iMesh+1),DuctGeom);
-            S2(iMesh+1) = DCMD_PackStream(S2(iMesh+1),DuctGeom);            
-            QTEC2 = TE_Heat(TEXs(2),x(6,iMesh),TECs(2),opts(1),opts(2));
-            QFN = QTEC1(1)/TECs(1).HTArea*AN(1);
-            QFW = S1(iMesh).Enthalpy;
-            QFS = JH(iMesh)*AN(1);
-            QFE = S1(iMesh+1).Enthalpy;
-            y(1,iMesh) = QFN-KF*(x(1,iMesh)-x(2,iMesh))*AN(1);
-            y(2,iMesh) = QFN+QFW-QFS-QFE;
-            y(3,iMesh) = KF*(x(2,iMesh)-x(3,iMesh))-JH(iMesh);
-            QPN = JH(iMesh)*AN(2);
-            QPW = S2(iMesh).Enthalpy;
-            QPE = S2(iMesh+1).Enthalpy;
-            QPS = QTEC2(2)/TECs(2).HTArea*AN(2);
-            y(4,iMesh) = KP*(x(4,iMesh)-x(5,iMesh))-JH(iMesh);
-            y(5,iMesh) = QPW+QPS-QPN-QPE;
-            y(6,iMesh) = QPS-KP*(x(5,iMesh)-x(6,iMesh))*AN(2);
-            QTEC{iMesh} = [QTEC1/TECs(1).HTArea*AN(1);QTEC2/TECs(2).HTArea*AN(2)];
-            QM(iMesh) = mean([QFS,QPN]);
-            SM(iMesh).Temp = mean([x(3,iMesh),x(4,iMesh)]);
-        end
-        fval = reshape(y,size(xs));
+        [~,KF] = DCMD_TM(SWs(1),0);
+        [~,KP] = DCMD_TM(SWs(2),0);
+        QTEC1 = TE_Heat(TSH,TEXs(1),TECs(1),opts(1),opts(2));
+        QTEC2 = TE_Heat(TEXs(2),TSC,TECs(2),opts(1),opts(2));
+        QFN = QTEC1(1)/TECs(1).HTArea*AN(1);
+        QPS = QTEC2(2)/TECs(1).HTArea*AN(1);
+        TF = TSH-QFN/AN(1)/KF;
+        TP = TSC+QPS/AN(2)/KP;
+        QFS = KF*(TF-TMF)*AN(1);
+        QPN = KP*(TMP-TP)*AN(2);
+        [JH,JM] = JHM(SWs,TMF,TMP,membrane);
+        SEs = SWs;
+        SEs(1).MassFlow = SWs(1).MassFlow-JM*AN(1);
+        SEs(2).MassFlow = SWs(2).MassFlow-JM*AN(2);
+        SEs(1).Temp = TF;
+        SEs(2).Temp = TP;
+        SEs(1) = DCMD_PackStream(SEs(1),DuctGeom);
+        SEs(2) = DCMD_PackStream(SEs(2),DuctGeom);
+        QFE = SEs(1).Enthalpy;
+        QPE = SEs(2).Enthalpy;
+        y(1) = QFW+QFN-QFE-QFS;
+        y(2) = QFS-JH*AN(1);
+        y(3) = QPN-JH*AN(2);
+        y(4) = QPE+QPN-QPW-QPS;
+        Ts = [TSH,TF,TMF,TMP,TP,TSC];
+        SM.MassFlow = JM*AN(2);
+        SM.Temp = TMP;
+        SM = DCMD_PackStream(SM,DuctGeom);
+        QM = QPN;
+        QTEC = [QTEC1;QTEC2];
     end
     
     % DCMD膜组件料液侧主流向膜面边界层的传热通量
