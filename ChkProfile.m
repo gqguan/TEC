@@ -89,7 +89,7 @@ chkList = table(Items,Results,Criteria,Remarks);
         argType = class(value);
         switch argType
             case 'double'
-                if critValue > value
+                if critValue > abs(value)
                     remarks = 'okey';
                 else
                     remarks = 'failure';
