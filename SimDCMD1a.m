@@ -1,5 +1,5 @@
 
-function [outTab,profile] = SimDCMD2(sn,W1,T1,W2,T2,config,refluxRatio)
+function [outTab,profile] = SimDCMD1a(sn,W1,T1,W2,T2,config,refluxRatio)
 % 输入参数config说明：
 % classical - 传统DCMD系统：外置料液加热和渗透液冷却单元，其中加热用电热，冷却用TEC
 % extTEHP   - 在传统DCMD系统的基础上外置加热和冷却采用半导体热泵耦合，
