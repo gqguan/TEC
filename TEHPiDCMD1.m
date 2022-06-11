@@ -90,8 +90,8 @@ SOUTs(2) = S2(1);
             [Ts(:,iCV),SEs(:,iCV),SM(iCV),QM(iCV),QTEC{iCV}] = HBCV(SWs(:,iCV));
             SWs(:,iCV+1) = SEs(:,iCV);
         end
-        y(1) = SEs(2,end).MassFlow-SINs(2).MassFlow;
-        y(2) = SEs(2,end).Temp-SINs(2).Temp;
+        y(1) = (SEs(2,end).MassFlow-SINs(2).MassFlow)/SINs(2).MassFlow;
+        y(2) = (SEs(2,end).Temp-SINs(2).Temp)/SINs(2).Temp;
         S1 = SWs(1,:);
         S2 = SWs(2,:);
     end
