@@ -32,7 +32,7 @@ function [SOUTs,QTEC] = HXiTEHP(SINs,TEC,opts,Eset)
     
     if exist('Eset','var')
         z0 = 1.5;
-        fzero(@(z)CalcEC(z)-Eset,z0);
+        [z,dE,exitflag] = fzero(@(z)CalcEC(z)-Eset,z0);
     else
         CalcEC()
     end
@@ -50,8 +50,13 @@ function [SOUTs,QTEC] = HXiTEHP(SINs,TEC,opts,Eset)
         x0 = [TF0,TP2];
         lb = [298.15,273.15+5];
         ub = [273.15+95,273.15+95];
-        x = lsqnonlin(@HeatBalance,x0,lb,ub,solOpt);
+        [x,resnorm,~,exitflag] = lsqnonlin(@HeatBalance,x0,lb,ub,solOpt);
         EC = QTEC(1)-QTEC(2);
+        if resnorm > 1e-4
+            warning('【注意】CalcEC()求解外置集成半导体热泵加热和冷却单元进料温度分别为%.5gK和%.5gK，其结果偏差%.5g（exitflag=%d）',...
+                x(1),x(2),resnorm,exitflag)
+            return
+        end
     end
 
     function dH = HeatBalance(T)
@@ -63,8 +68,8 @@ function [SOUTs,QTEC] = HXiTEHP(SINs,TEC,opts,Eset)
         SOUTs(2) = DCMD_PackStream(SOUTs(2));
         TH = T(1); TC = T(2);
         QTEC = TE_Heat(TH,TC,TEC,opts(1),opts(2));
-        dH(1) = abs(QTEC(1)+SINs(1).Enthalpy-SOUTs(1).Enthalpy);
-        dH(2) = abs(QTEC(2)+SINs(2).Enthalpy-SOUTs(2).Enthalpy);
+        dH(1) = abs(SINs(1).Enthalpy+QTEC(1)-SOUTs(1).Enthalpy);
+        dH(2) = abs(SINs(2).Enthalpy-QTEC(2)-SOUTs(2).Enthalpy);
     end
 
 end
