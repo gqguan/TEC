@@ -1,4 +1,4 @@
-function [stream,QTEC,profile,exitflag] = SimDCMD3(Eset,W1,W2,T0)
+function [stream,QTEC,profile,exitflag] = SimDCMD3(Eset,W1,W2,T0,cfg)
 % 模拟给定功耗和冷热侧循环流率的外置集成半导体热泵DCMD系统
     % 初始化
     strIU = {'Current','Voltage'};
@@ -12,6 +12,7 @@ function [stream,QTEC,profile,exitflag] = SimDCMD3(Eset,W1,W2,T0)
         Eset = 24; % TEC功耗
         W1 = 1.217e-2; W2 = 6.389e-3; % [kg/s]
         T0 = 298.15;
+        cfg = 'classical';
     end
     % 设定半导体热泵参数
     iTEC1 = 22;
@@ -32,18 +33,44 @@ function [stream,QTEC,profile,exitflag] = SimDCMD3(Eset,W1,W2,T0)
     stream.F.Temp = T0;
     stream.F.MassFlow = WF;
     stream.F = DCMD_PackStream(stream.F);
-    % 求解[TF0,TP2]
-    stream.F0 = Stream; stream.R2 = Stream;
-    stream.F0.MassFlow = W1; stream.R2.MassFlow = W2;
-    TF0 = mean([T1,T2]); TP2 = T2;
-    % 非线性最小二乘法
-    x0 = [TF0,T2];
-    lb = [T0,273.15+5];
-    ub = [273.15+95,T1];
+
     opt = optimoptions(@lsqnonlin,'Display','iter',...
                                   'Algorithm','trust-region-reflective');
-    [x,~,residual,exitflag] = lsqnonlin(@extTEHP1,x0,lb,ub,opt);
-    fprintf('求解TF0和T2分别为%.5gK和%.5gK（exitflag=%d）；其中残差分别为%.5gK和%.5gK\n',x,exitflag,residual)
+    switch cfg
+        case('classical')
+            % 初始化流股F1和R2
+            stream.F1 = Stream; stream.R2 = Stream;
+            stream.F1.MassFlow = W1; stream.R2.MassFlow = W2;
+            switch strIU{opts(2)}
+                case('Current')
+                    initIorU = 3.5;
+                    ubIorU = 15;
+                case('Voltage')
+                    initIorU = 6;
+                    ubIorU = 15;
+            end
+            % 非线性最小二乘法求解[TF1,TR2,IorU]
+            x0 = [T1,T2,initIorU];
+            lb = [T0,273.15+5,0.1];
+            ub = [273.15+95,T1,ubIorU];
+            [x,~,residual,exitflag] = lsqnonlin(@classical,x0,lb,ub,opt);
+            stmList = {"F","P","F0","F1","F2","P1","P2","R2"};
+            fprintf('求解TF1、TP1和TEC操作%s分别为%.5gK、%.5gK和%.5g%s（exitflag=%d）；\n',strIU{opts(2)},x,strUnit{opts(2)},exitflag)
+            fprintf('其中残差分别为%.5gK、%.5gK和%.5g%s\n',residual,strUnit{opts(2)})
+        case('extTEHP')
+            % 初始化流股F0和R2
+            stream.F0 = Stream; stream.R2 = Stream;
+            stream.F0.MassFlow = W1; stream.R2.MassFlow = W2;
+            TF0 = mean([T1,T2]); TP2 = T2;
+            % 非线性最小二乘法求解[TF0,TR2]
+            x0 = [TF0,T2];
+            lb = [T0,273.15+5];
+            ub = [273.15+95,T1];
+            [x,~,residual,exitflag] = lsqnonlin(@extTEHP1,x0,lb,ub,opt);
+            stmList = {"F","FP","P","F0","F1","F2","R1","P1","P2","R2"};
+            fprintf('求解TF0和T2分别为%.5gK和%.5gK（exitflag=%d）；其中残差分别为%.5gK和%.5gK\n',x,exitflag,residual)
+    end
+    
 %     % 直接迭代法
 %     for iter = 1:1000 % 最大迭代次数为1000
 %         [TF0a,TP2a] = extTEHP(TF0,TP2); 
@@ -62,7 +89,6 @@ function [stream,QTEC,profile,exitflag] = SimDCMD3(Eset,W1,W2,T0)
 %     end
     % 输出
     outTab = table;
-    stmList = {"F","FP","P","F0","F1","F2","R1","P1","P2","R2"};
     for iStm = 1:length(stmList)
         Stream = stmList{iStm};
         tab1r = [table(Stream),struct2table(stream.(stmList{iStm}))];
@@ -70,6 +96,50 @@ function [stream,QTEC,profile,exitflag] = SimDCMD3(Eset,W1,W2,T0)
     end
     disp(outTab)
     
+    function y = classical(x)
+        y = ones(size(x)); % 设初值
+        stream.F1.Temp = x(1); stream.R2.Temp = x(2); extTEC.(strIU{opts(2)}) = x(3);
+        stream.F1 = DCMD_PackStream(stream.F1);
+        stream.R2 = DCMD_PackStream(stream.R2);
+        [stream.P1,QTEC] = TEC(stream.R2,extTEC,opts);
+        E2 = -diff(QTEC);
+        [profile,SOUTs] = TEHPiDCMD1([stream.F1,stream.P1],TECs,TEXs,membrane,flowPattern,opts);
+        stream.F2 = SOUTs(1);
+        stream.P2 = SOUTs(2);
+        y(2) = (stream.P2.Temp-x(2))/x(2);
+        stream.P = SPLIT(stream.P2,stream.R2);
+        stream.F = CalcF(stream.P);
+        E1 = CalcE1(stream.F1,stream.F2,stream.F);
+        stream.F0 = MIX(stream.F2,stream.F);
+        stmF1 = Heater(stream.F0,E1);
+        y(1) = (stmF1.Temp-x(1))/x(1);
+        y(3) = (EDistributor(Eset,E1)-E2)/E2;
+    end
+
+    function E1 = CalcE1(stmF1,stmF2,stmF)
+        E1 = stmF1.Enthalpy-stmF2.Enthalpy-stmF.Enthalpy;
+    end
+
+    function [sout,QTEC] = TEC(sin,extTEC,opts)
+        sout = sin; % 设初值
+        % 计算TEC冷却渗透液出料
+        TC0 = sin.Temp;
+        TC = fzero(@CalcTC,TC0);
+        
+        function dTC = CalcTC(TC)
+            QTEC = TE_Heat(298.15,TC,extTEC,opts(1),opts(2));
+            sout.Enthalpy = sin.Enthalpy-QTEC(2);
+            sout.Temp = sout.Enthalpy/sout.MassFlow/sout.SpecHeat;
+            dTC = sout.Temp-TC;
+        end
+    end
+
+    function stmF = CalcF(stmP)
+        stmF = stmP;
+        stmF.Temp = T0;
+        stmF = DCMD_PackStream(stmF);
+    end
+
     function [TF0a,TP2a] = extTEHP(TF0,TP2)
         stream.F0.Temp = TF0; stream.R2.Temp = TP2;
         stream.F0 = DCMD_PackStream(stream.F0);
@@ -108,7 +178,17 @@ function [stream,QTEC,profile,exitflag] = SimDCMD3(Eset,W1,W2,T0)
         stream.F0 = MIX(stream.R1,stream.F);
         dT(1) = stream.F0.Temp-x(1);
     end
-    
+
+    function Eother = EDistributor(Ein,Eone)
+        Eother = Ein-Eone;
+    end
+
+    function sout = Heater(sin,Q)
+        sout = sin;
+        sout.Enthalpy = sin.Enthalpy+Q;
+        sout.Temp = sout.Enthalpy/sout.MassFlow/sout.SpecHeat;
+    end
+
     function [stmFP,stmF,msg] = CalcFP(stmF2,stmP,E)
         stmFP = stmF2; stmF = stream.F; msg = ''; % 设初值
         % 联立HFP=E+HF-HP、HF=WF*cp*T0和HFP=(WF-WP)*cp*TF2求得WF
