@@ -13,23 +13,13 @@ addpath([homePath(1:idxPath(2)),'Common\'])
 
 %% 模拟DCMD系统能耗情况
 % 全因素设计
-dMat = fullfact([1 3 3 3]);
+dMat = fullfact([4 1 1 1]);
 nLvl = max(dMat);
 CaseNo = GenerateCaseNo('ffd',dMat);
-CFGLvls = {'extTEHP'}; %  DCMD配置方案
-ELvls = {10,25,40}; % 设定功耗 [W]
+CFGLvls = {'classical' 'extTEHP' 'feedTEHP' 'permTEHP'}; %  DCMD配置方案
+ELvls = {15,25,35}; % 设定功耗 [W]
 W1Lvls = linspace(1.217e-4*5,1.217e-2,nLvl(3)); %  料液侧膜组件进料流率 [kg/s] Re=10*5~1000
 W2Lvls = linspace(1.217e-4*5,1.217e-2,nLvl(4)); % 渗透侧膜组件进料流率 [kg/s] Re=10*5~1000
-dTab = table; 
-for i = 1:size(dMat,1)
-    tt = table;
-    tt.SN = CaseNo(i);
-    tt.CFG = CFGLvls(dMat(i,1));
-    tt.E = ELvls(dMat(i,2));
-    tt.W1 = W1Lvls(dMat(i,3));
-    tt.W2 = W2Lvls(dMat(i,4));
-    dTab = [dTab;tt];
-end
 n = size(dMat,1);
 results = table;
 prompt = sprintf('开始%d个案例的计算',n);
@@ -41,11 +31,11 @@ parfor iExp = 1:n % parfor循环中的变量为临时变量，不能在parfor循
     W1 = W1Lvls(dMat(iExp,3));
     W2 = W2Lvls(dMat(iExp,4));
     tab1 = [cell2table(SN),cell2table(CFG),table(E,W1,W2)];
-    [stream,QTEC,profile,exitflag] = SimDCMD3(E,W1,W2,298.15);
-    WP = stream.P.MassFlow;
+    [stream,QTEC,profile,exitflag] = SimDCMD3(E,W1,W2,298.15,CFG{:});
+    WP = stream.MassFlow(strcmp("P",stream.Stream));
     SEC = E/WP;
-    results(iExp,:) = [tab1,table(WP,SEC,stream),table(QTEC),cell2table({profile})];
+    results(iExp,:) = [tab1,table(WP,SEC),table(QTEC),cell2table({stream,profile})];
     hbar.iterate(1)
 end
-results.Properties.VariableNames = {'SN' 'CFG' 'E' 'W1' 'W2' 'WP' 'SEC' 'Stream' 'QTEC' 'profile'};
+results.Properties.VariableNames = {'SN' 'CFG' 'E' 'W1' 'W2' 'WP' 'SEC' 'QTEC' 'Stream' 'profile'};
 close(hbar);

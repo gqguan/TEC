@@ -1,4 +1,4 @@
-function [stream,QTEC,profile,exitflag] = SimDCMD3(Eset,W1,W2,T0,cfg)
+function [outTab,QTEC,profile,exitflag] = SimDCMD3(Eset,W1,W2,T0,cfg)
 % 模拟给定功耗和冷热侧循环流率的外置集成半导体热泵DCMD系统
     % 初始化
     strIU = {'Current','Voltage'};
@@ -41,7 +41,7 @@ function [stream,QTEC,profile,exitflag] = SimDCMD3(Eset,W1,W2,T0,cfg)
             % 初始化流股F1和R2
             stream.F1 = Stream; stream.R2 = Stream;
             stream.F1.MassFlow = W1; stream.R2.MassFlow = W2;
-            switch strIU{opts(2)}
+            switch strIU{opts(2)+1}
                 case('Current')
                     initIorU = 3.5;
                     ubIorU = 15;
@@ -54,9 +54,9 @@ function [stream,QTEC,profile,exitflag] = SimDCMD3(Eset,W1,W2,T0,cfg)
             lb = [T0,273.15+5,0.1];
             ub = [273.15+95,T1,ubIorU];
             [x,~,residual,exitflag] = lsqnonlin(@classical,x0,lb,ub,opt);
-            stmList = {"F","P","F0","F1","F2","P1","P2","R2"};
-            fprintf('求解TF1、TP1和TEC操作%s分别为%.5gK、%.5gK和%.5g%s（exitflag=%d）；\n',strIU{opts(2)},x,strUnit{opts(2)},exitflag)
-            fprintf('其中残差分别为%.5gK、%.5gK和%.5g%s\n',residual,strUnit{opts(2)})
+%             stmList = {"F","P","F0","F1","F2","P1","P2","R2"};
+            fprintf('解得TF1、TP1和TEC操作%s分别为%.5gK、%.5gK和%.5g%s（exitflag=%d）；\n',strIU{opts(2)+1},x,strUnit{opts(2)+1},exitflag)
+            fprintf('其中TF1、TP1和E2的相对残差分别为%.5g%%、%.5g%%和%.5g%%\n',residual*100)
         case('extTEHP')
             % 初始化流股F0和R2
             stream.F0 = Stream; stream.R2 = Stream;
@@ -67,8 +67,51 @@ function [stream,QTEC,profile,exitflag] = SimDCMD3(Eset,W1,W2,T0,cfg)
             lb = [T0,273.15+5];
             ub = [273.15+95,T1];
             [x,~,residual,exitflag] = lsqnonlin(@extTEHP1,x0,lb,ub,opt);
-            stmList = {"F","FP","P","F0","F1","F2","R1","P1","P2","R2"};
+%             stmList = {"F","P","FP","F0","F1","F2","P1","P2","R1","R2"};
             fprintf('求解TF0和T2分别为%.5gK和%.5gK（exitflag=%d）；其中残差分别为%.5gK和%.5gK\n',x,exitflag,residual)
+        case('feedTEHP')
+            % 初始化流股F1和P1
+            stream.F1 = Stream; stream.P1 = Stream;
+            stream.F1.MassFlow = W1; stream.P1.MassFlow = W2;
+            % 设定集成半导体热泵DCMD膜组件的料液侧TEC加热单元
+            TECs(1) = extTEC;
+            switch strIU{opts(2)+1}
+                case('Current')
+                    initIorU = 3.5;
+                    ubIorU = 15;
+                case('Voltage')
+                    initIorU = 6;
+                    ubIorU = 15;
+            end
+            % 非线性最小二乘法求解[TF1,TP1,IorU]
+            x0 = [T1,T2,initIorU];
+            lb = [T0,273.15+5,0.1];
+            ub = [273.15+95,T1,ubIorU];
+            [x,~,residual,exitflag] = lsqnonlin(@feedTEHP,x0,lb,ub,opt);
+%             stmList = {"F","P","F1","F2","P1","P2","R2"};
+            fprintf('解得TF1、TP1和TEC操作%s分别为%.5gK、%.5gK和%.5g%s（exitflag=%d）；\n',strIU{opts(2)+1},x,strUnit{opts(2)+1},exitflag)
+            fprintf('其中TF1、TP1和E2的相对残差分别为%.5g%%、%.5g%%和%.5g%%\n',residual*100)
+        case('permTEHP')
+            % 初始化流股F1和P1
+            stream.F1 = Stream; stream.P1 = Stream;
+            stream.F1.MassFlow = W1; stream.P1.MassFlow = W2;
+            % 设定集成半导体热泵DCMD膜组件的料液侧TEC加热单元
+            TECs(2) = extTEC;
+            switch strIU{opts(2)+1}
+                case('Current')
+                    initIorU = 3.5;
+                    ubIorU = 15;
+                case('Voltage')
+                    initIorU = 6;
+                    ubIorU = 15;
+            end
+            % 非线性最小二乘法求解[TF1,TP1,IorU]
+            x0 = [T1,T2,initIorU];
+            lb = [T0,273.15+5,0.1];
+            ub = [273.15+95,T1,ubIorU];
+            [x,~,residual,exitflag] = lsqnonlin(@permTEHP,x0,lb,ub,opt);
+            fprintf('解得TF1、TP1和TEC操作%s分别为%.5gK、%.5gK和%.5g%s（exitflag=%d）；\n',strIU{opts(2)+1},x,strUnit{opts(2)+1},exitflag)
+            fprintf('其中TF1、TP1和E2的相对残差分别为%.5g%%、%.5g%%和%.5g%%\n',residual*100)
     end
     
 %     % 直接迭代法
@@ -89,16 +132,87 @@ function [stream,QTEC,profile,exitflag] = SimDCMD3(Eset,W1,W2,T0,cfg)
 %     end
     % 输出
     outTab = table;
+    stmList = {"F","P","FP","F0","F1","F2","P1","P2","R1","R2"};
+    stmNames = fieldnames(stream.F);
+    nullStruct = struct;
+    for iName = 1:length(stmNames)
+        nullStruct.(stmNames{iName}) = missing;
+    end
     for iStm = 1:length(stmList)
         Stream = stmList{iStm};
-        tab1r = [table(Stream),struct2table(stream.(stmList{iStm}))];
+        if any(strcmp(Stream,fieldnames(stream)))
+            tab1r = [table(Stream),struct2table(stream.(stmList{iStm}))];
+        else
+            tab1r = [table(Stream),struct2table(nullStruct)];
+        end
         outTab = [outTab;tab1r];
     end
-    disp(outTab)
+%     disp(outTab)
+    
+    function y = permTEHP(x)
+        y = ones(size(x)); % 设初值
+        stream.F1.Temp = x(1); stream.P1.Temp = x(2); TECs(2).(strIU{opts(2)+1}) = x(3);
+        stream.F1 = DCMD_PackStream(stream.F1);
+        stream.P1 = DCMD_PackStream(stream.P1);
+        TEXs(2) = x(1); % 设定集成半导体热泵DCMD膜组件渗透侧冷却单元的环境温度为料液侧进料温度TF1
+        [profile,SOUTs] = TEHPiDCMD1([stream.F1,stream.P1],TECs,TEXs,membrane,flowPattern,opts);
+        stream.F2 = SOUTs(1);
+        stream.P2 = SOUTs(2);
+        stream.R2 = stream.P2; % 设定流股R2与P2具有相同的物性和温度
+        stream.R2.MassFlow = stream.P1.MassFlow; % 设定流股R2流率与P1相同
+        stream.R2 = DCMD_PackStream(stream.R2); 
+        stream.P = SPLIT(stream.P2,stream.R2);
+        QTEC(1) = sum(cellfun(@(x)x(2,1),profile.QTEC));
+        QTEC(2) = sum(cellfun(@(x)x(2,2),profile.QTEC));
+        E = -diff(QTEC);
+        [stream.F,stream.FP] = CalcFFP(stream.F1,stream.F2,QTEC(1));
+        stream.R1 = SPLIT(stream.F2,stream.FP);
+        stream.F0 = MIX(stream.F,stream.R1);
+        stmF1 = Heater(stream.F0,QTEC(1));
+        y(1) = (stmF1.Temp-x(1))/x(1);
+        y(2) = (stream.P2.Temp-x(2))/x(2);
+        y(3) = (Eset-E)/E;
+    end
+
+    function [stmF,stmFP] = CalcFFP(stmF1,stmF2,Q1)
+        stmF = stmF1; stmFP = stmF2; % 设初值
+        TF2 = stmF2.Temp; 
+        stmF.Temp = T0;
+        WP = stmF1.MassFlow-stmF2.MassFlow;
+        HF1 = stmF1.Enthalpy; HF2 = stmF2.Enthalpy;
+        stmFP.MassFlow = (Q1+WP*stmF.SpecHeat*T0-(HF1-HF2))/(stmFP.SpecHeat*(TF2-T0));
+        stmFP = DCMD_PackStream(stmFP);
+        stmF.MassFlow = stmFP.MassFlow+WP;
+        stmF = DCMD_PackStream(stmF);
+    end
+    
+    function y = feedTEHP(x)
+        y = ones(size(x)); % 设初值
+        stream.F1.Temp = x(1); stream.P1.Temp = x(2); TECs(1).(strIU{opts(2)+1}) = x(3);
+        stream.F1 = DCMD_PackStream(stream.F1);
+        stream.P1 = DCMD_PackStream(stream.P1);
+        TEXs(1) = x(2); % 设定集成半导体热泵DCMD膜组件料液侧加热单元的环境温度为渗透侧进料温度TP1
+        [profile,SOUTs] = TEHPiDCMD1([stream.F1,stream.P1],TECs,TEXs,membrane,flowPattern,opts);
+        stream.F2 = SOUTs(1);
+        stream.P2 = SOUTs(2);
+        stream.R2 = stream.P2; % 设定流股R2与P2具有相同的物性和温度
+        stream.R2.MassFlow = stream.P1.MassFlow; % 设定流股R2流率与P1相同
+        stream.R2 = DCMD_PackStream(stream.R2); 
+        stream.P = SPLIT(stream.P2,stream.R2);
+        stream.F = CalcF(stream.P);
+        stmF1 = MIX(stream.F,stream.F2);
+        y(1) = (stmF1.Temp-x(1))/x(1);
+        QTEC(1) = sum(cellfun(@(x)x(1,1),profile.QTEC));
+        QTEC(2) = sum(cellfun(@(x)x(1,2),profile.QTEC));
+        stmP1 = Heater(stream.R2,-QTEC(2));
+        y(2) = (stmP1.Temp-x(2))/x(2);
+        E = -diff(QTEC);
+        y(3) = (Eset-E)/E;
+    end
     
     function y = classical(x)
         y = ones(size(x)); % 设初值
-        stream.F1.Temp = x(1); stream.R2.Temp = x(2); extTEC.(strIU{opts(2)}) = x(3);
+        stream.F1.Temp = x(1); stream.R2.Temp = x(2); extTEC.(strIU{opts(2)+1}) = x(3);
         stream.F1 = DCMD_PackStream(stream.F1);
         stream.R2 = DCMD_PackStream(stream.R2);
         [stream.P1,QTEC] = TEC(stream.R2,extTEC,opts);
